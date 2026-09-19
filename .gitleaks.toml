@@ -1,0 +1,11 @@
+[extend]
+useDefault = true
+
+# Private addresses are fine in this repo. Flag anything else.
+[[rules]]
+id = "public-ipv4"
+description = "IPv4 address outside the private ranges"
+regex = '''\b(?:\d{1,3}\.){3}\d{1,3}\b'''
+
+  [[rules.allowlists]]
+  regexes = ['''^(10\.|192\.168\.|172\.(1[6-9]|2\d|3[01])\.|127\.|0\.0\.0\.0$|192\.0\.2\.)''']
