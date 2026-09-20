@@ -1,0 +1,15 @@
+- name: Install base packages
+  ansible.builtin.apt:
+    name:
+      - ca-certificates
+      - curl
+      - jq
+      - python3-cryptography
+      - qemu-guest-agent
+      - unzip
+    state: present
+    update_cache: true
+    cache_valid_time: 3600
+
+# The guest agent service is deliberately not started here. It only runs once
+# the VM has the agent enabled in its Proxmox config, and udev starts it then.

@@ -1,0 +1,21 @@
+- name: Create the mount point
+  ansible.builtin.file:
+    path: "{{ openbao_share_path }}"
+    state: directory
+    mode: "0755"
+
+# nofail keeps the VM booting if the share is missing. The service unit then
+# refuses to start, so OpenBao can never write to the VM disk by mistake.
+- name: Mount the virtiofs share
+  ansible.posix.mount:
+    path: "{{ openbao_share_path }}"
+    src: "{{ openbao_share_tag }}"
+    fstype: virtiofs
+    opts: defaults,nofail,x-systemd.device-timeout=10s
+    state: mounted
+
+- name: Check that the share really is mounted
+  ansible.builtin.command: findmnt --noheadings --output FSTYPE {{ openbao_share_path | quote }}
+  register: openbao_mount_check
+  changed_when: false
+  failed_when: openbao_mount_check.stdout | trim != 'virtiofs'

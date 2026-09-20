@@ -1,0 +1,38 @@
+# Managed by Ansible. Changes made here are overwritten.
+[Unit]
+Description=OpenBao secrets manager
+Documentation=https://openbao.org/docs/
+Wants=network-online.target
+After=network-online.target
+RequiresMountsFor={{ openbao_share_path }}
+# Refuse to start unless the persistent share is mounted, so data can never
+# end up on the VM disk by accident.
+AssertPathIsMountPoint={{ openbao_share_path }}
+ConditionFileNotEmpty={{ openbao_config_dir }}/openbao.hcl
+
+[Service]
+Type=simple
+User={{ openbao_user }}
+Group={{ openbao_group }}
+ExecStart=/usr/local/bin/bao server -config={{ openbao_config_dir }}/openbao.hcl
+ExecReload=/bin/kill --signal HUP $MAINPID
+KillMode=process
+KillSignal=SIGINT
+Restart=on-failure
+RestartSec=5
+TimeoutStopSec=30
+LimitNOFILE=65536
+LimitCORE=0
+NoNewPrivileges=yes
+PrivateTmp=yes
+PrivateDevices=yes
+ProtectSystem=strict
+ProtectHome=yes
+ProtectKernelTunables=yes
+ProtectKernelModules=yes
+ProtectControlGroups=yes
+RestrictSUIDSGID=yes
+ReadWritePaths={{ openbao_share_path }}
+
+[Install]
+WantedBy=multi-user.target

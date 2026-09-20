@@ -1,0 +1,33 @@
+- name: Set the release location
+  ansible.builtin.set_fact:
+    openbao_release_url: "https://github.com/openbao/openbao/releases/download/v{{ openbao_version }}"
+    openbao_release_dir: "{{ openbao_install_dir }}/{{ openbao_version }}"
+
+- name: Create the versioned install directory
+  ansible.builtin.file:
+    path: "{{ openbao_release_dir }}"
+    state: directory
+    mode: "0755"
+
+- name: Download OpenBao and verify its checksum
+  ansible.builtin.get_url:
+    url: "{{ openbao_release_url }}/openbao_{{ openbao_version }}_linux_{{ openbao_arch }}.tar.gz"
+    dest: "{{ openbao_release_dir }}/openbao.tar.gz"
+    checksum: "sha256:{{ openbao_release_url }}/checksums.txt"
+    mode: "0644"
+
+- name: Unpack the binary
+  ansible.builtin.unarchive:
+    src: "{{ openbao_release_dir }}/openbao.tar.gz"
+    dest: "{{ openbao_release_dir }}"
+    remote_src: true
+    include:
+      - bao
+    creates: "{{ openbao_release_dir }}/bao"
+
+- name: Point /usr/local/bin/bao at this version
+  ansible.builtin.file:
+    src: "{{ openbao_release_dir }}/bao"
+    dest: /usr/local/bin/bao
+    state: link
+  notify: Restart openbao

@@ -1,0 +1,17 @@
+- name: Reload systemd
+  ansible.builtin.systemd:
+    daemon_reload: true
+
+# A restart leaves OpenBao sealed until it is unsealed again.
+- name: Restart openbao
+  ansible.builtin.systemd:
+    name: openbao
+    state: restarted
+  when: openbao_service_managed | default(true) | bool
+
+# The listener re-reads its certificate on SIGHUP.
+- name: Reload openbao
+  ansible.builtin.systemd:
+    name: openbao
+    state: reloaded
+  when: openbao_service_managed | default(true) | bool

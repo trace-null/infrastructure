@@ -1,0 +1,16 @@
+- name: Create the config directory
+  ansible.builtin.file:
+    path: "{{ openbao_config_dir }}"
+    state: directory
+    owner: root
+    group: "{{ openbao_group }}"
+    mode: "0750"
+
+- name: Write the OpenBao config
+  ansible.builtin.template:
+    src: openbao.hcl.j2
+    dest: "{{ openbao_config_dir }}/openbao.hcl"
+    owner: root
+    group: "{{ openbao_group }}"
+    mode: "0640"
+  notify: Restart openbao
