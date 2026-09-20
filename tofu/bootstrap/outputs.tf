@@ -1,1 +1,7 @@
-# Outputs go here once there are resources.
+output "openbao_ip" {
+  value = local.openbao_ip
+}
+
+output "openbao_vm_id" {
+  value = module.openbao.vm_id
+}

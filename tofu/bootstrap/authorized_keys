@@ -1,0 +1,9 @@
+# Public SSH keys allowed to log in as the Ansible user, one per line.
+# Public keys only. Never put a private key here.
+#
+# Add the key from each machine you run Ansible from, for example:
+#   cat ~/.ssh/id_ed25519.pub
+#
+# Edit the comment at the end of each line so it holds no personal details.
+#
+ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIIDBdtcsRDT1Ai/3hqtKVHaqV9oI3IRP9vd6bFiYBwub arch linux work laptop
