@@ -1,14 +1,14 @@
 #!/usr/bin/env bash
-# scripts/setup-wsl.sh
+# scripts/setup-tools.sh
 #
-# Installs the client tooling needed to work with this repo from WSL
-# (Debian or Ubuntu). Safe to run more than once.
+# Installs the client tooling needed to work with this repo on Debian or
+# Ubuntu (including WSL) and on Arch Linux. Safe to run more than once.
 #
 # Installs: git, jq, Ansible (with hvac and the hashi_vault collection),
 # OpenTofu, just, the OpenBao client (bao) and the Bitwarden CLI (bw).
 #
-# sudo is used for apt and for the OpenTofu installer. Everything else
-# goes into ~/.local/bin without elevated rights.
+# sudo is used for the system package manager and for the OpenTofu installer
+# on Debian and Ubuntu. Everything else goes into ~/.local/bin.
 #
 # Optional overrides (environment variables):
 #   OPENBAO_VERSION   pin a release, for example 2.1.0 (default: latest)
@@ -22,6 +22,7 @@ REPO_ROOT="$(cd "${SCRIPT_DIR}/.." && pwd)"
 OPENBAO_VERSION="${OPENBAO_VERSION:-latest}"
 ALLOW_UNVERIFIED="${ALLOW_UNVERIFIED:-0}"
 ARCH=""
+PKG=""
 TMP_DIR="$(mktemp -d)"
 trap 'rm -rf "${TMP_DIR}"' EXIT
 
@@ -34,10 +35,12 @@ preflight() {
   log "Checking environment"
 
   [[ "${EUID}" -ne 0 ]] || die "Run this as your normal user and not as root."
-  have apt-get || die "This script supports Debian and Ubuntu (apt) only."
-
-  if ! grep -qi microsoft /proc/version 2>/dev/null; then
-    warn "This does not look like WSL. Carrying on anyway."
+  if have apt-get; then
+    PKG="apt"
+  elif have pacman; then
+    PKG="pacman"
+  else
+    die "This script supports Debian, Ubuntu and Arch Linux only."
   fi
 
   case "${REPO_ROOT}" in
@@ -57,10 +60,18 @@ preflight() {
   export PATH="${BIN_DIR}:${PATH}"
 }
 
-install_apt_packages() {
+install_base_packages() {
   log "Installing base packages"
-  sudo apt-get update -y
-  sudo apt-get install -y git jq curl unzip ca-certificates gnupg python3 python3-venv pipx
+  case "${PKG}" in
+    apt)
+      sudo apt-get update -y
+      sudo apt-get install -y git jq curl unzip ca-certificates gnupg python3 python3-venv pipx
+      ;;
+    pacman)
+      # If pacman reports 404 errors, run: sudo pacman -Syu
+      sudo pacman -S --needed --noconfirm git jq curl unzip ca-certificates gnupg python python-pipx
+      ;;
+  esac
 }
 
 install_ansible() {
@@ -92,10 +103,17 @@ install_opentofu() {
   fi
 
   log "Installing OpenTofu"
-  curl --proto '=https' --tlsv1.2 -fsSL https://get.opentofu.org/install-opentofu.sh \
-    -o "${TMP_DIR}/install-opentofu.sh"
-  chmod +x "${TMP_DIR}/install-opentofu.sh"
-  sudo "${TMP_DIR}/install-opentofu.sh" --install-method deb
+  case "${PKG}" in
+    apt)
+      curl --proto '=https' --tlsv1.2 -fsSL https://get.opentofu.org/install-opentofu.sh \
+        -o "${TMP_DIR}/install-opentofu.sh"
+      chmod +x "${TMP_DIR}/install-opentofu.sh"
+      sudo "${TMP_DIR}/install-opentofu.sh" --install-method deb
+      ;;
+    pacman)
+      sudo pacman -S --needed --noconfirm opentofu
+      ;;
+  esac
 }
 
 install_just() {
@@ -105,7 +123,9 @@ install_just() {
   fi
 
   log "Installing just"
-  if apt-cache show just >/dev/null 2>&1; then
+  if [[ "${PKG}" == "pacman" ]]; then
+    sudo pacman -S --needed --noconfirm just
+  elif apt-cache show just >/dev/null 2>&1; then
     sudo apt-get install -y just
   else
     curl --proto '=https' --tlsv1.2 -fsSL https://just.systems/install.sh \
@@ -210,7 +230,7 @@ verify() {
 
 main() {
   preflight
-  install_apt_packages
+  install_base_packages
   install_ansible
   install_opentofu
   install_just
@@ -219,7 +239,7 @@ main() {
   verify
 
   log "Done"
-  echo "Open a new shell (or run: source ~/.bashrc) so PATH changes take effect."
+  echo "Open a new terminal so PATH changes take effect."
 }
 
 main "$@"
