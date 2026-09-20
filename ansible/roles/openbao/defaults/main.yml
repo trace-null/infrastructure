@@ -1,0 +1,40 @@
+# Version to install. Bump this to upgrade. The download is checked against
+# the checksums published with the release.
+openbao_version: "2.6.2"
+openbao_arch: "{{ 'arm64' if ansible_facts['architecture'] == 'aarch64' else 'amd64' }}"
+
+# The service user. The UID and GID are fixed on purpose: files on the share
+# keep these numbers on the host, so a rebuilt VM must use the same ones.
+openbao_user: openbao
+openbao_group: openbao
+openbao_uid: 2001
+openbao_gid: 2001
+
+# Everything persistent lives on the virtiofs share from the host dataset.
+openbao_share_tag: openbao-data
+openbao_share_path: /mnt/infra
+openbao_data_dir: "{{ openbao_share_path }}/raft"
+openbao_tls_dir: "{{ openbao_share_path }}/tls"
+openbao_snapshot_dir: "{{ openbao_share_path }}/snapshots"
+
+# Everything below is rebuilt from this repo and lives on the VM disk.
+openbao_install_dir: /opt/openbao
+openbao_config_dir: /etc/openbao.d
+
+openbao_node_id: "{{ inventory_hostname }}"
+openbao_listen_address: "0.0.0.0:8200"
+openbao_cluster_listen_address: "0.0.0.0:8201"
+openbao_api_addr: "https://{{ ansible_host }}:8200"
+openbao_cluster_addr: "https://{{ ansible_host }}:8201"
+
+# TLS. The certificate and key are kept on the share so the certificate
+# survives rebuilds. Add names with entries such as "DNS:openbao.example.lan".
+openbao_tls_extra_sans: []
+openbao_tls_sans: >-
+  {{ ['IP:' ~ ansible_host, 'IP:127.0.0.1', 'DNS:' ~ inventory_hostname, 'DNS:localhost']
+     + openbao_tls_extra_sans }}
+openbao_tls_days: 1825
+
+# Copy the certificate to the machine running Ansible so clients can trust it.
+openbao_fetch_cert: true
+openbao_cert_local_dest: "{{ lookup('ansible.builtin.env', 'HOME') }}/.config/infra/openbao.crt"

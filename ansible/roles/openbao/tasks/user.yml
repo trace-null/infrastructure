@@ -1,0 +1,14 @@
+- name: Create the OpenBao group with a fixed GID
+  ansible.builtin.group:
+    name: "{{ openbao_group }}"
+    gid: "{{ openbao_gid }}"
+    system: true
+
+- name: Create the OpenBao user with a fixed UID
+  ansible.builtin.user:
+    name: "{{ openbao_user }}"
+    uid: "{{ openbao_uid }}"
+    group: "{{ openbao_group }}"
+    shell: /usr/sbin/nologin
+    create_home: false
+    system: true

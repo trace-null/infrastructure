@@ -2,7 +2,5 @@
 - name: Baseline
   hosts: managed
   become: true
-  tasks:
-    - name: Placeholder until the baseline roles exist
-      ansible.builtin.debug:
-        msg: "Baseline roles go here"
+  roles:
+    - baseline

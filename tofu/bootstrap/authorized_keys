@@ -7,3 +7,5 @@
 # Edit the comment at the end of each line so it holds no personal details.
 #
 ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIIDBdtcsRDT1Ai/3hqtKVHaqV9oI3IRP9vd6bFiYBwub arch linux work laptop
+
+ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIFxJltG0hPPXKWCzoTnK15vwYk+xpQGp4qqRvaoBL/Gv pve-cloudinit

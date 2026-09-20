@@ -1,0 +1,22 @@
+- name: Create the service user
+  ansible.builtin.import_tasks: user.yml
+
+- name: Mount the persistent share
+  ansible.builtin.import_tasks: mount.yml
+  tags: [mount]
+
+- name: Create the directories on the share
+  ansible.builtin.import_tasks: dirs.yml
+
+- name: Install OpenBao
+  ansible.builtin.import_tasks: install.yml
+
+- name: Create the TLS certificate
+  ansible.builtin.import_tasks: tls.yml
+
+- name: Write the configuration
+  ansible.builtin.import_tasks: config.yml
+
+- name: Run the service
+  ansible.builtin.import_tasks: service.yml
+  tags: [service]

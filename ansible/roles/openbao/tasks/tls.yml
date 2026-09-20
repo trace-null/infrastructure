@@ -1,0 +1,41 @@
+- name: Generate the TLS private key on the share
+  community.crypto.openssl_privatekey:
+    path: "{{ openbao_tls_dir }}/openbao.key"
+    type: ECC
+    curve: secp384r1
+    owner: "{{ openbao_user }}"
+    group: "{{ openbao_group }}"
+    mode: "0600"
+
+- name: Create the certificate signing request
+  community.crypto.openssl_csr_pipe:
+    privatekey_path: "{{ openbao_tls_dir }}/openbao.key"
+    common_name: "{{ inventory_hostname }}"
+    subject_alt_name: "{{ openbao_tls_sans }}"
+    key_usage:
+      - digitalSignature
+      - keyEncipherment
+    extended_key_usage:
+      - serverAuth
+  register: openbao_csr
+  # The request is regenerated every run. The certificate task decides if anything changed.
+  changed_when: false
+
+- name: Create the self-signed certificate
+  community.crypto.x509_certificate:
+    path: "{{ openbao_tls_dir }}/openbao.crt"
+    csr_content: "{{ openbao_csr.csr }}"
+    privatekey_path: "{{ openbao_tls_dir }}/openbao.key"
+    provider: selfsigned
+    selfsigned_not_after: "+{{ openbao_tls_days }}d"
+    owner: "{{ openbao_user }}"
+    group: "{{ openbao_group }}"
+    mode: "0644"
+  notify: Reload openbao
+
+- name: Copy the certificate to the machine running Ansible
+  ansible.builtin.fetch:
+    src: "{{ openbao_tls_dir }}/openbao.crt"
+    dest: "{{ openbao_cert_local_dest }}"
+    flat: true
+  when: openbao_fetch_cert | bool

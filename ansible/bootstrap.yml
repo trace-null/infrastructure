@@ -2,7 +2,6 @@
 - name: OpenBao
   hosts: openbao_hosts
   become: true
-  tasks:
-    - name: Placeholder until the openbao role exists
-      ansible.builtin.debug:
-        msg: "OpenBao install, init and unseal go here"
+  roles:
+    - baseline
+    - openbao
