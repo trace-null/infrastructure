@@ -1,0 +1,8 @@
+# Bootstrap layer: OpenBao, GitLab and the runner. Always run by hand.
+- name: OpenBao
+  hosts: openbao_hosts
+  become: true
+  tasks:
+    - name: Placeholder until the openbao role exists
+      ansible.builtin.debug:
+        msg: "OpenBao install, init and unseal go here"
