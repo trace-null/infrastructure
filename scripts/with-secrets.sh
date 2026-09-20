@@ -19,8 +19,8 @@ command -v bw >/dev/null 2>&1 || die "The Bitwarden CLI (bw) is not installed. R
 [[ -n "${BW_SESSION:-}" ]] || die 'Bitwarden is locked. Run: export BW_SESSION="$(bw unlock --raw)"'
 
 # Bitwarden item names. Override them in .env if yours differ.
-ITEM_PROXMOX_TOKEN="${ITEM_PROXMOX_TOKEN:-infra/proxmox-api-token}"
-ITEM_STATE_PASSPHRASE="${ITEM_STATE_PASSPHRASE:-infra/tofu-state-passphrase}"
+ITEM_PROXMOX_TOKEN="${ITEM_PROXMOX_TOKEN:-infrastructure/proxmox-api-token}"
+ITEM_STATE_PASSPHRASE="${ITEM_STATE_PASSPHRASE:-infrastructure/tofu-state-passphrase}"
 
 # Proxmox API token, in the form user@realm!tokenid=secret
 PROXMOX_VE_API_TOKEN="$(bw get password "${ITEM_PROXMOX_TOKEN}")" \

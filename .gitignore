@@ -28,3 +28,4 @@ override.tf
 override.tf.json
 *.retry
 .ansible/
+**/.terraform-validate/

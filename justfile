@@ -25,6 +25,7 @@ fmt:
 validate:
     for d in tofu/bootstrap tofu/prod; do \
         [ -f "$d/versions.tf" ] || continue; \
+        export TF_DATA_DIR="$PWD/$d/.terraform-validate"; \
         tofu -chdir="$d" init -backend=false -input=false > /dev/null; \
         tofu -chdir="$d" validate; \
     done
@@ -61,3 +62,7 @@ rebuild: forget-hosts
     @read -r -p "Apply the bootstrap plan? [y/N] " a && [ "$a" = "y" ]
     just apply bootstrap
     just converge bootstrap.yml
+
+# Pin the Ubuntu cloud image release, for example: just set-image 20260918
+set-image release:
+    ./scripts/set-image.sh {{release}}
