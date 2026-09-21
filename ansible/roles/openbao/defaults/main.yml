@@ -38,3 +38,13 @@ openbao_tls_days: 1825
 # Copy the certificate to the machine running Ansible so clients can trust it.
 openbao_fetch_cert: true
 openbao_cert_local_dest: "{{ lookup('ansible.builtin.env', 'HOME') }}/.config/infra/openbao.crt"
+
+# Audit log on the share. Rotated daily by logrotate.
+openbao_audit_dir: "{{ openbao_share_path }}/audit"
+openbao_audit_file: "{{ openbao_audit_dir }}/audit.log"
+
+# Static-key auto-unseal. The key is read from the OPENBAO_SEAL_KEY
+# environment variable of the machine running Ansible. The id is a permanent
+# label for the key. Keep it as it is unless the key is rotated.
+openbao_seal_key: "{{ lookup('ansible.builtin.env', 'OPENBAO_SEAL_KEY') }}"
+openbao_seal_key_id: infra-1

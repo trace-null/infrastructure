@@ -17,6 +17,12 @@
 - name: Write the configuration
   ansible.builtin.import_tasks: config.yml
 
+- name: Install the seal key
+  ansible.builtin.import_tasks: seal.yml
+
+- name: Rotate the audit log
+  ansible.builtin.import_tasks: logrotate.yml
+
 - name: Run the service
   ansible.builtin.import_tasks: service.yml
   tags: [service]

@@ -16,3 +16,19 @@ listener "tcp" {
   tls_key_file    = "{{ openbao_tls_dir }}/openbao.key"
   tls_min_version = "tls12"
 }
+
+# Auto-unseal with a static key. The key is read from the environment, which
+# systemd fills from a root-only file that Ansible writes from Bitwarden.
+seal "static" {
+  current_key_id = "{{ openbao_seal_key_id }}"
+  current_key    = "env://OPENBAO_SEAL_KEY"
+}
+
+# Audit log on the share. It is declared here because OpenBao does not allow
+# audit devices to be enabled through the API. logrotate rotates the file.
+audit "file" "file" {
+  description = "Audit log on the persistent share"
+  options {
+    file_path = "{{ openbao_audit_file }}"
+  }
+}

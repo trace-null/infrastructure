@@ -9,3 +9,4 @@
     - { path: "{{ openbao_data_dir }}", mode: "0700" }
     - { path: "{{ openbao_tls_dir }}", mode: "0750" }
     - { path: "{{ openbao_snapshot_dir }}", mode: "0700" }
+    - { path: "{{ openbao_audit_dir }}", mode: "0700" }

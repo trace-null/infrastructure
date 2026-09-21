@@ -4,6 +4,7 @@
       - ca-certificates
       - curl
       - jq
+      - logrotate
       - python3-cryptography
       - qemu-guest-agent
       - unzip

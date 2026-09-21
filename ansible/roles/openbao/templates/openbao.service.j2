@@ -14,6 +14,7 @@ ConditionFileNotEmpty={{ openbao_config_dir }}/openbao.hcl
 Type=simple
 User={{ openbao_user }}
 Group={{ openbao_group }}
+EnvironmentFile={{ openbao_config_dir }}/seal.env
 ExecStart=/usr/local/bin/bao server -config={{ openbao_config_dir }}/openbao.hcl
 ExecReload=/bin/kill --signal HUP $MAINPID
 KillMode=process

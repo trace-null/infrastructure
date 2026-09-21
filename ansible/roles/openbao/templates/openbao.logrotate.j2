@@ -1,0 +1,15 @@
+# Managed by Ansible. Changes made here are overwritten.
+{{ openbao_audit_dir }}/*.log {
+    su {{ openbao_user }} {{ openbao_group }}
+    daily
+    rotate 14
+    compress
+    delaycompress
+    missingok
+    notifempty
+    create 0600 {{ openbao_user }} {{ openbao_group }}
+    sharedscripts
+    postrotate
+        /usr/bin/systemctl reload openbao > /dev/null 2>&1 || true
+    endscript
+}

@@ -1,0 +1,22 @@
+# The seal key comes from Bitwarden through the OPENBAO_SEAL_KEY environment
+# variable of the machine running Ansible (see scripts/with-secrets.sh). It is
+# written to a root-only file that systemd reads, and never to the share.
+- name: Check that the seal key is present and well formed
+  ansible.builtin.assert:
+    that:
+      - openbao_seal_key is match('^[0-9a-f]{64}$')
+    fail_msg: >-
+      OPENBAO_SEAL_KEY is missing or is not 64 hex characters. Run this
+      through just, so the key is loaded from Bitwarden.
+    quiet: true
+
+- name: Write the seal key file
+  ansible.builtin.copy:
+    content: "OPENBAO_SEAL_KEY={{ openbao_seal_key }}\n"
+    dest: "{{ openbao_config_dir }}/seal.env"
+    owner: root
+    group: root
+    mode: "0600"
+  no_log: true
+  diff: false
+  notify: Restart openbao
