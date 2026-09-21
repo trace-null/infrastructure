@@ -74,3 +74,7 @@ openbao-init:
 # Set up policies, AppRoles and an admin user, then revoke the root token
 openbao-configure:
     {{secrets}} ./scripts/openbao-configure.sh
+
+# Create the snapshot policy and AppRole in OpenBao (uses the admin login)
+openbao-snapshot-setup:
+    {{secrets}} ./scripts/openbao-snapshot-setup.sh
