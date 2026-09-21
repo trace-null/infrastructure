@@ -1,0 +1,27 @@
+#!/usr/bin/env bash
+# Managed by Ansible. Saves a Raft snapshot and prunes old ones.
+set -euo pipefail
+
+dir="{{ openbao_snapshot_dir }}"
+keep="{{ openbao_snapshot_keep }}"
+export BAO_ADDR="https://127.0.0.1:8200"
+export BAO_CACERT="{{ openbao_tls_dir }}/openbao.crt"
+
+tmp="$(mktemp -p "${dir}" .raft.XXXXXX)"
+trap 'rm -f "${tmp}"' EXIT
+
+BAO_TOKEN="$(printf '%s' "${SNAPSHOT_SECRET_ID}" \
+  | bao write -field=token auth/approle/login role_id="${SNAPSHOT_ROLE_ID}" secret_id=-)"
+export BAO_TOKEN
+
+bao operator raft snapshot save "${tmp}"
+[[ -s "${tmp}" ]] || { echo "Snapshot file is empty" >&2; exit 1; }
+bao token revoke -self > /dev/null
+
+mv "${tmp}" "${dir}/raft-$(date +%Y%m%d-%H%M%S).snap"
+trap - EXIT
+
+cd "${dir}"
+# shellcheck disable=SC2012
+ls -1t raft-*.snap | tail -n +"$((keep + 1))" | xargs -r rm --
+echo "Snapshot saved. $(ls -1 raft-*.snap | wc -l) kept."

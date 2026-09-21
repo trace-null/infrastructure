@@ -1,0 +1,13 @@
+[Unit]
+Description=Save an OpenBao Raft snapshot
+Wants=openbao.service
+After=openbao.service
+RequiresMountsFor={{ openbao_snapshot_dir }}
+
+[Service]
+Type=oneshot
+User={{ openbao_user }}
+Group={{ openbao_group }}
+EnvironmentFile={{ openbao_config_dir }}/snapshot.env
+ExecStart=/usr/local/sbin/openbao-snapshot
+NoNewPrivileges=true

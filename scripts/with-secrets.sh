@@ -61,4 +61,12 @@ OPENBAO_SEAL_KEY="$(bw get password "${ITEM_OPENBAO_SEAL_KEY}")" \
   || die "The OpenBao seal key must be 64 hex characters (openssl rand -hex 32)."
 export OPENBAO_SEAL_KEY
 
+# OpenBao snapshot AppRole. Only the openbao Ansible role reads these.
+ITEM_OPENBAO_SNAPSHOT="${ITEM_OPENBAO_APPROLE_SNAPSHOT:-infrastructure/openbao-approle-snapshot}"
+OPENBAO_SNAPSHOT_ROLE_ID="$(bw get username "${ITEM_OPENBAO_SNAPSHOT}")" \
+  || die "Could not read '${ITEM_OPENBAO_SNAPSHOT}' from Bitwarden. Run: just openbao-snapshot-setup"
+OPENBAO_SNAPSHOT_SECRET_ID="$(bw get password "${ITEM_OPENBAO_SNAPSHOT}")" \
+  || die "Could not read '${ITEM_OPENBAO_SNAPSHOT}' from Bitwarden."
+export OPENBAO_SNAPSHOT_ROLE_ID OPENBAO_SNAPSHOT_SECRET_ID
+
 exec "$@"
