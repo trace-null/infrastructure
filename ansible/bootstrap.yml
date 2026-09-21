@@ -5,3 +5,10 @@
   roles:
     - baseline
     - openbao
+
+- name: GitLab
+  hosts: gitlab_hosts
+  become: true
+  roles:
+    - baseline
+    - gitlab

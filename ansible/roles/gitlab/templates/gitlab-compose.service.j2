@@ -1,0 +1,17 @@
+[Unit]
+Description=GitLab compose stack
+Requires=docker.service
+After=docker.service
+RequiresMountsFor={{ gitlab_share_path }}
+
+[Service]
+Type=oneshot
+RemainAfterExit=yes
+WorkingDirectory={{ gitlab_project_dir }}
+ExecStart=/usr/bin/docker compose up -d --remove-orphans
+ExecReload=/usr/bin/docker compose up -d --remove-orphans
+ExecStop=/usr/bin/docker compose stop
+TimeoutStartSec=1200
+
+[Install]
+WantedBy=multi-user.target

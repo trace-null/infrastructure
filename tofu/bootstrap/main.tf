@@ -21,3 +21,27 @@ module "openbao" {
   virtiofs_shares = [{ mapping = "openbao-data" }, { mapping = "openbao-backup" }]
   description     = "OpenBao secrets server. Managed by OpenTofu."
 }
+
+module "gitlab" {
+  source = "../modules/vm"
+
+  name            = "gitlab-1"
+  vm_id           = 211
+  node_name       = var.node_name
+  datastore_id    = var.vm_datastore_id
+  template_vm_id  = local.template_vm_id
+  image_id        = local.image_id
+  bridge          = var.network_bridge
+  cores           = 4
+  memory_mb       = 8192
+  disk_gb         = 40
+  ip_address      = local.gitlab_ip
+  prefix_length   = var.network_prefix_length
+  gateway         = var.network_gateway
+  dns_servers     = var.dns_servers
+  username        = local.ansible_user
+  ssh_keys        = local.ssh_keys
+  tags            = ["gitlab", "opentofu"]
+  virtiofs_shares = [{ mapping = "gitlab-data" }]
+  description     = "GitLab CE. Managed by OpenTofu."
+}

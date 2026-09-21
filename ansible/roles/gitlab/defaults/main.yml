@@ -1,0 +1,19 @@
+# GitLab CE release. Bump this to upgrade, one minor version at a time.
+gitlab_version: "19.4.0-ce.0"
+
+# Site names come from the untracked .env, so real domains stay out of the repo.
+gitlab_hostname: "{{ lookup('ansible.builtin.env', 'GITLAB_HOSTNAME') }}"
+gitlab_ssh_host: "{{ lookup('ansible.builtin.env', 'GITLAB_SSH_HOST') }}"
+gitlab_external_url: "https://{{ gitlab_hostname }}"
+gitlab_http_port: 80
+gitlab_ssh_port: 2224
+
+# Persistent data lives on the virtiofs share from the host dataset.
+gitlab_share_tag: gitlab-data
+gitlab_share_path: /mnt/infra
+
+# The compose files come from the public GitHub repo, so a rebuild never
+# needs GitLab itself to clone them.
+gitlab_repo_url: https://github.com/trace-null/gitlab.git
+gitlab_repo_version: main
+gitlab_project_dir: /opt/gitlab
