@@ -5,6 +5,7 @@ locals {
 
   openbao_ip   = local.inventory.all.children.openbao_hosts.hosts["openbao-1"].ansible_host
   gitlab_ip    = local.inventory.all.children.gitlab_hosts.hosts["gitlab-1"].ansible_host
+  authentik_ip = local.inventory.all.children.authentik_hosts.hosts["infrastructure-stack"].ansible_host
   ansible_user = local.group_vars.ansible_user
 
   # Public keys allowed to log in as the Ansible user. One per line in authorized_keys.
