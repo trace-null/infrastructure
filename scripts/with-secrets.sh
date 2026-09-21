@@ -53,6 +53,12 @@ ENC
 export TF_ENCRYPTION
 unset state_pass
 
-# Later: log in to OpenBao here and export VAULT_ADDR and VAULT_TOKEN.
+# OpenBao seal key (64 hex characters). Only the openbao Ansible role reads it.
+ITEM_OPENBAO_SEAL_KEY="${ITEM_OPENBAO_SEAL_KEY:-infrastructure/openbao-seal-key}"
+OPENBAO_SEAL_KEY="$(bw get password "${ITEM_OPENBAO_SEAL_KEY}")" \
+  || die "Could not read '${ITEM_OPENBAO_SEAL_KEY}' from Bitwarden."
+[[ "${OPENBAO_SEAL_KEY}" =~ ^[0-9a-f]{64}$ ]] \
+  || die "The OpenBao seal key must be 64 hex characters (openssl rand -hex 32)."
+export OPENBAO_SEAL_KEY
 
 exec "$@"

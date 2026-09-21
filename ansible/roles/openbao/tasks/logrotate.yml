@@ -1,0 +1,7 @@
+- name: Rotate the audit log
+  ansible.builtin.template:
+    src: openbao.logrotate.j2
+    dest: /etc/logrotate.d/openbao
+    owner: root
+    group: root
+    mode: "0644"

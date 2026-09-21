@@ -66,3 +66,11 @@ rebuild: forget-hosts
 # Pin the Ubuntu cloud image release, for example: just set-image 20260918
 set-image release:
     ./scripts/set-image.sh {{release}}
+
+# Initialise OpenBao once and store the recovery keys in Bitwarden
+openbao-init:
+    {{secrets}} ./scripts/openbao-init.sh
+
+# Set up policies, AppRoles and an admin user, then revoke the root token
+openbao-configure:
+    {{secrets}} ./scripts/openbao-configure.sh
