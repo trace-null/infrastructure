@@ -26,3 +26,7 @@
 - name: Run the service
   ansible.builtin.import_tasks: service.yml
   tags: [service]
+
+- name: Schedule Raft snapshots
+  ansible.builtin.import_tasks: snapshot.yml
+  tags: [snapshot]

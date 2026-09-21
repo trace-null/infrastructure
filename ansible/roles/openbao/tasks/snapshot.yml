@@ -1,0 +1,50 @@
+- name: Check that the snapshot credentials are present
+  ansible.builtin.assert:
+    that:
+      - openbao_snapshot_role_id | length > 0
+      - openbao_snapshot_secret_id | length > 0
+    fail_msg: >-
+      The snapshot AppRole credentials are missing. Run this through just,
+      so they are loaded from Bitwarden.
+    quiet: true
+
+- name: Write the snapshot credentials file
+  ansible.builtin.copy:
+    content: |
+      SNAPSHOT_ROLE_ID={{ openbao_snapshot_role_id }}
+      SNAPSHOT_SECRET_ID={{ openbao_snapshot_secret_id }}
+    dest: "{{ openbao_config_dir }}/snapshot.env"
+    owner: root
+    group: root
+    mode: "0600"
+  no_log: true
+  diff: false
+
+- name: Install the snapshot script
+  ansible.builtin.template:
+    src: openbao-snapshot.sh.j2
+    dest: /usr/local/sbin/openbao-snapshot
+    owner: root
+    group: root
+    mode: "0755"
+
+- name: Install the snapshot service and timer
+  ansible.builtin.template:
+    src: "{{ item }}.j2"
+    dest: "/etc/systemd/system/{{ item }}"
+    owner: root
+    group: root
+    mode: "0644"
+  loop:
+    - openbao-snapshot.service
+    - openbao-snapshot.timer
+  notify: Reload systemd
+
+- name: Apply pending handlers before enabling the timer
+  ansible.builtin.meta: flush_handlers
+
+- name: Enable the snapshot timer
+  ansible.builtin.systemd:
+    name: openbao-snapshot.timer
+    enabled: true
+    state: started
