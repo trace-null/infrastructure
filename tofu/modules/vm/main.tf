@@ -104,6 +104,7 @@ resource "proxmox_virtual_environment_vm" "this" {
   }
 
   lifecycle {
+    ignore_changes = [initialization[0].file_format]
     precondition {
       condition     = length(var.ssh_keys) > 0
       error_message = "No SSH keys found. Add your public key to tofu/bootstrap/authorized_keys."

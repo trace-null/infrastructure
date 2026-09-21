@@ -15,7 +15,6 @@ openbao_share_tag: openbao-data
 openbao_share_path: /mnt/infra
 openbao_data_dir: "{{ openbao_share_path }}/raft"
 openbao_tls_dir: "{{ openbao_share_path }}/tls"
-openbao_snapshot_dir: "{{ openbao_share_path }}/snapshots"
 
 # Everything below is rebuilt from this repo and lives on the VM disk.
 openbao_install_dir: /opt/openbao
@@ -48,3 +47,14 @@ openbao_audit_file: "{{ openbao_audit_dir }}/audit.log"
 # label for the key. Keep it as it is unless the key is rotated.
 openbao_seal_key: "{{ lookup('ansible.builtin.env', 'OPENBAO_SEAL_KEY') }}"
 openbao_seal_key_id: infra-1
+
+# Raft snapshots go to a separate share from the backup dataset, so they
+# survive the loss of the VM disk and the live data share.
+openbao_backup_tag: openbao-backup
+openbao_backup_path: /mnt/backup
+openbao_snapshot_dir: "{{ openbao_backup_path }}"
+
+# Every virtiofs share the VM mounts.
+openbao_mounts:
+  - { tag: "{{ openbao_share_tag }}", path: "{{ openbao_share_path }}" }
+  - { tag: "{{ openbao_backup_tag }}", path: "{{ openbao_backup_path }}" }

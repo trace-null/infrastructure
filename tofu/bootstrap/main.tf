@@ -18,6 +18,6 @@ module "openbao" {
   username        = local.ansible_user
   ssh_keys        = local.ssh_keys
   tags            = ["openbao", "opentofu"]
-  virtiofs_shares = [{ mapping = "openbao-data" }]
+  virtiofs_shares = [{ mapping = "openbao-data" }, { mapping = "openbao-backup" }]
   description     = "OpenBao secrets server. Managed by OpenTofu."
 }
