@@ -14,6 +14,9 @@ set -euo pipefail
 
 die() { printf 'ERROR: %s\n' "$*" >&2; exit 1; }
 
+# shellcheck source=openbao-lib.sh
+source "$(dirname "${BASH_SOURCE[0]}")/openbao-lib.sh"
+
 [[ $# -gt 0 ]] || die "Usage: $0 <command> [args...]"
 command -v bw >/dev/null 2>&1 || die "The Bitwarden CLI (bw) is not installed. Run: just setup"
 [[ -n "${BW_SESSION:-}" ]] || die 'Bitwarden is locked. Run: export BW_SESSION="$(bw unlock --raw)"'
@@ -78,4 +81,8 @@ OPENBAO_ANSIBLE_SECRET_ID="$(bw get password "${ITEM_OPENBAO_ANSIBLE}")" \
   || die "Could not read '${ITEM_OPENBAO_ANSIBLE}' from Bitwarden."
 export OPENBAO_ANSIBLE_ROLE_ID OPENBAO_ANSIBLE_SECRET_ID
 
+# BAO_ADDR / BAO_CACERT for the community.hashi_vault lookup plugin.
+openbao_env
+
 exec "$@"
+
