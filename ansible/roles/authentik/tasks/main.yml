@@ -4,9 +4,11 @@
       - authentik_hostname | length > 0
       - authentik_postgres_password | length > 0
       - authentik_secret_key | length > 0
+      - authentik_deploy_key | length > 0
     fail_msg: >-
-      AUTHENTIK_HOSTNAME, AUTHENTIK_POSTGRES_PASSWORD and AUTHENTIK_SECRET_KEY
-      are missing. Add them to the untracked .env and run this through just.
+      AUTHENTIK_HOSTNAME is missing from the untracked .env, or the Postgres
+      password, secret key or deploy key are missing from OpenBao under
+      secret/apps/authentik.
     quiet: true
 
 - name: Create the mount point
@@ -58,11 +60,36 @@
     update_cache: true
     cache_valid_time: 3600
 
+- name: Create the SSH directory for the deploy key
+  ansible.builtin.file:
+    path: /root/.ssh
+    state: directory
+    owner: root
+    group: root
+    mode: "0700"
+
+- name: Install the deploy key for cloning the compose repository
+  ansible.builtin.copy:
+    content: "{{ authentik_deploy_key }}\n"
+    dest: /root/.ssh/authentik_deploy_key
+    owner: root
+    group: root
+    mode: "0600"
+  no_log: true
+
+- name: Trust the GitLab host key
+  ansible.builtin.known_hosts:
+    name: "[{{ hostvars[groups['gitlab_hosts'][0]].ansible_host }}]:2224"
+    key: "{{ lookup('ansible.builtin.pipe', 'ssh-keyscan -p 2224 -t ed25519 ' ~ hostvars[groups['gitlab_hosts'][0]].ansible_host) }}"
+    path: /root/.ssh/known_hosts
+
 - name: Fetch the compose repository
   ansible.builtin.git:
     repo: "{{ authentik_repo_url }}"
     dest: "{{ authentik_project_dir }}"
     version: "{{ authentik_repo_version }}"
+    key_file: /root/.ssh/authentik_deploy_key
+    accept_hostkey: true
   notify: Apply authentik compose
 
 - name: Write the compose settings

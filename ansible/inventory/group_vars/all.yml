@@ -1,2 +1,10 @@
 ansible_user: ansible
 ansible_python_interpreter: /usr/bin/python3
+
+# OpenBao connection, used by the community.hashi_vault lookup plugin.
+# Authentication uses the ansible AppRole (role ID and secret ID come from
+# the environment, see scripts/with-secrets.sh).
+vault_addr: "https://{{ hostvars[groups['openbao_hosts'][0]].ansible_host }}:8200"
+vault_ca_cert: "{{ lookup('ansible.builtin.env', 'HOME') }}/.config/infra/openbao.crt"
+vault_role_id: "{{ lookup('ansible.builtin.env', 'OPENBAO_ANSIBLE_ROLE_ID') }}"
+vault_secret_id: "{{ lookup('ansible.builtin.env', 'OPENBAO_ANSIBLE_SECRET_ID') }}"
