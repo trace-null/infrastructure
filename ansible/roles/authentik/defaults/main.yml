@@ -16,8 +16,15 @@ authentik_repo_url: "ssh://git@{{ hostvars[groups['gitlab_hosts'][0]].ansible_ho
 authentik_repo_version: main
 authentik_project_dir: /opt/authentik
 
-# Postgres credentials and the Django secret key, from OpenBao via .env.
-authentik_postgres_db: "{{ lookup('ansible.builtin.env', 'AUTHENTIK_POSTGRES_DB') }}"
-authentik_postgres_user: "{{ lookup('ansible.builtin.env', 'AUTHENTIK_POSTGRES_USER') }}"
-authentik_postgres_password: "{{ lookup('ansible.builtin.env', 'AUTHENTIK_POSTGRES_PASSWORD') }}"
-authentik_secret_key: "{{ lookup('ansible.builtin.env', 'AUTHENTIK_SECRET_KEY') }}"
+# Postgres credentials and the Django secret key, pulled from OpenBao at
+# converge time via the ansible AppRole (see group_vars/all.yml).
+authentik_vault_secret: >-
+  {{ lookup('community.hashi_vault.hashi_vault',
+     'secret=secret/data/apps/authentik',
+     url=vault_addr, ca_cert=vault_ca_cert, auth_method='approle',
+     role_id=vault_role_id, secret_id=vault_secret_id) }}
+authentik_postgres_db: "{{ authentik_vault_secret.postgres_db }}"
+authentik_postgres_user: "{{ authentik_vault_secret.postgres_user }}"
+authentik_postgres_password: "{{ authentik_vault_secret.postgres_password }}"
+authentik_secret_key: "{{ authentik_vault_secret.secret_key }}"
+authentik_deploy_key: "{{ authentik_vault_secret.deploy_key }}"

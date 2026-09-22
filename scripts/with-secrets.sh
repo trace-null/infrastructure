@@ -69,4 +69,13 @@ OPENBAO_SNAPSHOT_SECRET_ID="$(bw get password "${ITEM_OPENBAO_SNAPSHOT}")" \
   || die "Could not read '${ITEM_OPENBAO_SNAPSHOT}' from Bitwarden."
 export OPENBAO_SNAPSHOT_ROLE_ID OPENBAO_SNAPSHOT_SECRET_ID
 
+# OpenBao AppRole for Ansible itself, used by the community.hashi_vault
+# lookup plugin to read application secrets at converge time.
+ITEM_OPENBAO_ANSIBLE="${ITEM_OPENBAO_APPROLE_ANSIBLE:-infrastructure/openbao-approle-ansible}"
+OPENBAO_ANSIBLE_ROLE_ID="$(bw get username "${ITEM_OPENBAO_ANSIBLE}")" \
+  || die "Could not read '${ITEM_OPENBAO_ANSIBLE}' from Bitwarden."
+OPENBAO_ANSIBLE_SECRET_ID="$(bw get password "${ITEM_OPENBAO_ANSIBLE}")" \
+  || die "Could not read '${ITEM_OPENBAO_ANSIBLE}' from Bitwarden."
+export OPENBAO_ANSIBLE_ROLE_ID OPENBAO_ANSIBLE_SECRET_ID
+
 exec "$@"
