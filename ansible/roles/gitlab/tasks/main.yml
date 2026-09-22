@@ -8,92 +8,53 @@
       untracked .env and run this through just.
     quiet: true
 
-- name: Create the mount point
-  ansible.builtin.file:
-    path: "{{ gitlab_share_path }}"
-    state: directory
-
-# nofail keeps the VM booting if the share is missing. Docker and the stack
-# both require the mount, so GitLab can never write to the VM disk by mistake.
-- name: Mount the virtiofs share
-  ansible.posix.mount:
-    path: "{{ gitlab_share_path }}"
-    src: "{{ gitlab_share_tag }}"
-    fstype: virtiofs
-    opts: defaults,nofail,x-systemd.device-timeout=10s
-    state: mounted
-
-- name: Check that the share really is mounted
-  ansible.builtin.command: findmnt --noheadings --output FSTYPE {{ gitlab_share_path | quote }}
-  register: gitlab_mount_check
-  changed_when: false
-  failed_when: gitlab_mount_check.stdout | trim != 'virtiofs'
-
-- name: Make Docker wait for the share
-  ansible.builtin.file:
-    path: /etc/systemd/system/docker.service.d
-    state: directory
-    mode: "0755"
-
-- name: Install the Docker mount dependency
-  ansible.builtin.copy:
-    content: |
-      [Unit]
-      RequiresMountsFor={{ gitlab_share_path }}
-    dest: /etc/systemd/system/docker.service.d/10-gitlab-share.conf
-    mode: "0644"
-  notify: Reload systemd
-
-- name: Apply systemd changes before installing Docker
-  ansible.builtin.meta: flush_handlers
-
-- name: Install Docker and git from the Ubuntu repositories
-  ansible.builtin.apt:
-    name:
-      - docker.io
-      - docker-compose-v2
-      - git
-    state: present
-    update_cache: true
-    cache_valid_time: 3600
-
+# The compose files come from the public GitHub repo over HTTPS, no
+# credentials needed, so a rebuild never needs GitLab itself to clone them.
 - name: Fetch the compose repository
   ansible.builtin.git:
     repo: "{{ gitlab_repo_url }}"
     dest: "{{ gitlab_project_dir }}"
     version: "{{ gitlab_repo_version }}"
-  notify: Apply gitlab compose
 
-- name: Write the compose settings
-  ansible.builtin.copy:
-    content: |
-      GITLAB_VERSION={{ gitlab_version }}
-      GITLAB_HOSTNAME={{ gitlab_hostname }}
-      GITLAB_EXTERNAL_URL={{ gitlab_external_url }}
-      GITLAB_SSH_HOST={{ gitlab_ssh_host }}
-      GITLAB_HTTP_PORT={{ gitlab_http_port }}
-      GITLAB_SSH_PORT={{ gitlab_ssh_port }}
-      GITLAB_DATA_DIR={{ gitlab_share_path }}
-    dest: "{{ gitlab_project_dir }}/.env"
-    owner: root
-    group: root
-    mode: "0600"
-  notify: Apply gitlab compose
+- name: Read the Authentik OIDC client from OpenBao
+  ansible.builtin.set_fact:
+    gitlab_authentik: "{{ lookup('community.hashi_vault.hashi_vault',
+      'secret=secret/data/apps/gitlab-authentik',
+      url=vault_addr,
+      auth_method='approle',
+      role_id=vault_role_id,
+      secret_id=vault_secret_id,
+      ca_cert=vault_ca_cert) }}"
+  no_log: true
 
-- name: Install the stack service
-  ansible.builtin.template:
-    src: gitlab-compose.service.j2
-    dest: /etc/systemd/system/gitlab-compose.service
-    mode: "0644"
-  notify:
-    - Reload systemd
-    - Apply gitlab compose
+- name: Check that the Authentik OIDC client came back complete
+  ansible.builtin.assert:
+    that:
+      - gitlab_authentik.client_id is defined
+      - gitlab_authentik.client_secret is defined
+      - gitlab_authentik.issuer is defined
+    fail_msg: >-
+      OpenBao returned an incomplete secret at secret/apps/gitlab-authentik.
+      Expected client_id, client_secret, and issuer.
+    quiet: true
 
-- name: Apply pending handlers before starting the stack
-  ansible.builtin.meta: flush_handlers
-
-- name: Enable and start the GitLab stack
-  ansible.builtin.systemd:
-    name: gitlab-compose
-    enabled: true
-    state: started
+- name: Run the generic compose-app tasks
+  ansible.builtin.include_role:
+    name: compose_app
+  vars:
+    compose_app_name: gitlab
+    compose_app_display_name: GitLab
+    compose_app_share_tag: "{{ gitlab_share_tag }}"
+    compose_app_share_path: "{{ gitlab_share_path }}"
+    compose_app_project_dir: "{{ gitlab_project_dir }}"
+    compose_app_env:
+      GITLAB_VERSION: "{{ gitlab_version }}"
+      GITLAB_HOSTNAME: "{{ gitlab_hostname }}"
+      GITLAB_EXTERNAL_URL: "{{ gitlab_external_url }}"
+      GITLAB_SSH_HOST: "{{ gitlab_ssh_host }}"
+      GITLAB_HTTP_PORT: "{{ gitlab_http_port }}"
+      GITLAB_SSH_PORT: "{{ gitlab_ssh_port }}"
+      GITLAB_DATA_DIR: "{{ gitlab_share_path }}"
+      AUTHENTIK_ISSUER: "{{ gitlab_authentik.issuer }}"
+      AUTHENTIK_CLIENT_ID: "{{ gitlab_authentik.client_id }}"
+      AUTHENTIK_CLIENT_SECRET: "{{ gitlab_authentik.client_secret }}"

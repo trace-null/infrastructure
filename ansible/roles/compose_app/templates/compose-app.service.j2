@@ -1,13 +1,13 @@
 [Unit]
-Description=GitLab compose stack
+Description={{ compose_app_display_name | default(compose_app_name | capitalize) }} compose stack
 Requires=docker.service
 After=docker.service
-RequiresMountsFor={{ gitlab_share_path }}
+RequiresMountsFor={{ compose_app_share_path }}
 
 [Service]
 Type=oneshot
 RemainAfterExit=yes
-WorkingDirectory={{ gitlab_project_dir }}
+WorkingDirectory={{ compose_app_project_dir }}
 ExecStart=/usr/bin/docker compose up -d --remove-orphans
 ExecReload=/usr/bin/docker compose up -d --remove-orphans
 ExecStop=/usr/bin/docker compose stop

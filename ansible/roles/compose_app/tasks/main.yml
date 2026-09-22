@@ -1,0 +1,91 @@
+# Generic Docker Compose app: mount, Docker, .env, systemd unit, start.
+# Included by app-specific roles (gitlab, authentik, ...), which are
+# responsible for getting their own compose.yml into {{ compose_app_project_dir }}
+# before calling this.
+#
+# Required vars:
+#   compose_app_name         - short name, used for the systemd unit and drop-in
+#   compose_app_share_tag    - virtiofs mapping name
+#   compose_app_share_path   - mount point, e.g. /mnt/infra
+#   compose_app_project_dir  - where compose.yml already lives
+#   compose_app_env          - dict of KEY: value written to .env
+
+- name: "{{ compose_app_name }}: create the mount point"
+  ansible.builtin.file:
+    path: "{{ compose_app_share_path }}"
+    state: directory
+
+# nofail keeps the VM booting if the share is missing. Docker and the stack
+# both require the mount, so the app can never write to the VM disk by mistake.
+- name: "{{ compose_app_name }}: mount the virtiofs share"
+  ansible.posix.mount:
+    path: "{{ compose_app_share_path }}"
+    src: "{{ compose_app_share_tag }}"
+    fstype: virtiofs
+    opts: defaults,nofail,x-systemd.device-timeout=10s
+    state: mounted
+
+- name: "{{ compose_app_name }}: check that the share really is mounted"
+  ansible.builtin.command: findmnt --noheadings --output FSTYPE {{ compose_app_share_path | quote }}
+  register: compose_app_mount_check
+  changed_when: false
+  failed_when: compose_app_mount_check.stdout | trim != 'virtiofs'
+
+- name: "{{ compose_app_name }}: make Docker wait for the share"
+  ansible.builtin.file:
+    path: /etc/systemd/system/docker.service.d
+    state: directory
+    mode: "0755"
+
+- name: "{{ compose_app_name }}: install the Docker mount dependency"
+  ansible.builtin.copy:
+    content: |
+      [Unit]
+      RequiresMountsFor={{ compose_app_share_path }}
+    dest: "/etc/systemd/system/docker.service.d/10-{{ compose_app_name }}-share.conf"
+    mode: "0644"
+  notify: Reload systemd
+
+- name: "{{ compose_app_name }}: apply systemd changes before installing Docker"
+  ansible.builtin.meta: flush_handlers
+
+- name: "{{ compose_app_name }}: install Docker and git from the Ubuntu repositories"
+  ansible.builtin.apt:
+    name:
+      - docker.io
+      - docker-compose-v2
+      - git
+    state: present
+    update_cache: true
+    cache_valid_time: 3600
+
+- name: "{{ compose_app_name }}: write the compose settings"
+  ansible.builtin.copy:
+    content: |
+      {% for key, value in compose_app_env.items() %}
+      {{ key }}={{ value }}
+      {% endfor %}
+    dest: "{{ compose_app_project_dir }}/.env"
+    owner: root
+    group: root
+    mode: "0600"
+  no_log: true
+  notify: "Apply {{ compose_app_name }} compose"
+
+- name: "{{ compose_app_name }}: install the stack service"
+  ansible.builtin.template:
+    src: compose-app.service.j2
+    dest: "/etc/systemd/system/{{ compose_app_name }}-compose.service"
+    mode: "0644"
+  notify:
+    - Reload systemd
+    - "Apply {{ compose_app_name }} compose"
+
+- name: "{{ compose_app_name }}: apply pending handlers before starting the stack"
+  ansible.builtin.meta: flush_handlers
+
+- name: "{{ compose_app_name }}: enable and start the stack"
+  ansible.builtin.systemd:
+    name: "{{ compose_app_name }}-compose"
+    enabled: true
+    state: started
