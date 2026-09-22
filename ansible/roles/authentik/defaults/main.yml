@@ -1,0 +1,23 @@
+# Authentik image tag. Bump this to upgrade.
+authentik_version: "2026.8.2"
+
+# Site name comes from the untracked .env, so the real domain stays out of the repo.
+authentik_hostname: "{{ lookup('ansible.builtin.env', 'AUTHENTIK_HOSTNAME') }}"
+authentik_external_url: "https://{{ authentik_hostname }}"
+authentik_http_port: 9000
+authentik_https_port: 9443
+
+# Persistent data lives on the virtiofs share from the host dataset.
+authentik_share_tag: authentik-data
+authentik_share_path: /mnt/infra
+
+# The compose file comes from the private self-hosted GitLab, over SSH on 2224.
+authentik_repo_url: "ssh://git@{{ hostvars[groups['gitlab_hosts'][0]].ansible_host }}:2224/compose-files/authentik.git"
+authentik_repo_version: main
+authentik_project_dir: /opt/authentik
+
+# Postgres credentials and the Django secret key, from OpenBao via .env.
+authentik_postgres_db: "{{ lookup('ansible.builtin.env', 'AUTHENTIK_POSTGRES_DB') }}"
+authentik_postgres_user: "{{ lookup('ansible.builtin.env', 'AUTHENTIK_POSTGRES_USER') }}"
+authentik_postgres_password: "{{ lookup('ansible.builtin.env', 'AUTHENTIK_POSTGRES_PASSWORD') }}"
+authentik_secret_key: "{{ lookup('ansible.builtin.env', 'AUTHENTIK_SECRET_KEY') }}"

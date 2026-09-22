@@ -1,0 +1,98 @@
+- name: Check that the site settings are present
+  ansible.builtin.assert:
+    that:
+      - authentik_hostname | length > 0
+      - authentik_postgres_password | length > 0
+      - authentik_secret_key | length > 0
+    fail_msg: >-
+      AUTHENTIK_HOSTNAME, AUTHENTIK_POSTGRES_PASSWORD and AUTHENTIK_SECRET_KEY
+      are missing. Add them to the untracked .env and run this through just.
+    quiet: true
+
+- name: Create the mount point
+  ansible.builtin.file:
+    path: "{{ authentik_share_path }}"
+    state: directory
+
+# nofail keeps the VM booting if the share is missing. Docker and the stack
+# both require the mount, so Authentik can never write to the VM disk by mistake.
+- name: Mount the virtiofs share
+  ansible.posix.mount:
+    path: "{{ authentik_share_path }}"
+    src: "{{ authentik_share_tag }}"
+    fstype: virtiofs
+    opts: defaults,nofail,x-systemd.device-timeout=10s
+    state: mounted
+
+- name: Check that the share really is mounted
+  ansible.builtin.command: findmnt --noheadings --output FSTYPE {{ authentik_share_path | quote }}
+  register: authentik_mount_check
+  changed_when: false
+  failed_when: authentik_mount_check.stdout | trim != 'virtiofs'
+
+- name: Make Docker wait for the share
+  ansible.builtin.file:
+    path: /etc/systemd/system/docker.service.d
+    state: directory
+    mode: "0755"
+
+- name: Install the Docker mount dependency
+  ansible.builtin.copy:
+    content: |
+      [Unit]
+      RequiresMountsFor={{ authentik_share_path }}
+    dest: /etc/systemd/system/docker.service.d/10-authentik-share.conf
+    mode: "0644"
+  notify: Reload systemd
+
+- name: Apply systemd changes before installing Docker
+  ansible.builtin.meta: flush_handlers
+
+- name: Install Docker and git from the Ubuntu repositories
+  ansible.builtin.apt:
+    name:
+      - docker.io
+      - docker-compose-v2
+      - git
+    state: present
+    update_cache: true
+    cache_valid_time: 3600
+
+- name: Fetch the compose repository
+  ansible.builtin.git:
+    repo: "{{ authentik_repo_url }}"
+    dest: "{{ authentik_project_dir }}"
+    version: "{{ authentik_repo_version }}"
+  notify: Apply authentik compose
+
+- name: Write the compose settings
+  ansible.builtin.copy:
+    content: |
+      AUTHENTIK_TAG={{ authentik_version }}
+      POSTGRES_DB={{ authentik_postgres_db }}
+      POSTGRES_USER={{ authentik_postgres_user }}
+      POSTGRES_PASSWORD={{ authentik_postgres_password }}
+      AUTHENTIK_SECRET_KEY={{ authentik_secret_key }}
+    dest: "{{ authentik_project_dir }}/.env"
+    owner: root
+    group: root
+    mode: "0600"
+  notify: Apply authentik compose
+
+- name: Install the stack service
+  ansible.builtin.template:
+    src: authentik-compose.service.j2
+    dest: /etc/systemd/system/authentik-compose.service
+    mode: "0644"
+  notify:
+    - Reload systemd
+    - Apply authentik compose
+
+- name: Apply pending handlers before starting the stack
+  ansible.builtin.meta: flush_handlers
+
+- name: Enable and start the Authentik stack
+  ansible.builtin.systemd:
+    name: authentik-compose
+    enabled: true
+    state: started
