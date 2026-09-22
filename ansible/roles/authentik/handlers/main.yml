@@ -1,0 +1,8 @@
+- name: Reload systemd
+  ansible.builtin.systemd:
+    daemon_reload: true
+
+# Re-applies the compose file. Starts the stack if it is not running.
+- name: Apply authentik compose
+  ansible.builtin.command: systemctl reload-or-restart authentik-compose.service
+  changed_when: true

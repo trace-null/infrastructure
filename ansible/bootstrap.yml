@@ -12,3 +12,10 @@
   roles:
     - baseline
     - gitlab
+
+- name: Authentik
+  hosts: authentik_hosts
+  become: true
+  roles:
+    - baseline
+    - authentik
