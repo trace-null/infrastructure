@@ -9,3 +9,15 @@ output "openbao_vm_id" {
 output "gitlab_ip" {
   value = local.gitlab_ip
 }
+
+output "gitlab_vm_id" {
+  value = module.gitlab.vm_id
+}
+
+output "authentik_ip" {
+  value = local.authentik_ip
+}
+
+output "authentik_vm_id" {
+  value = module.infrastructure_stack.vm_id
+}
