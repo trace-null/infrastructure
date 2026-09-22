@@ -14,3 +14,20 @@ locals {
     if trimspace(line) != "" && !startswith(trimspace(line), "#")
   ]
 }
+
+locals {
+  # Values every VM shares. Per-VM blocks in main.tf merge these in and
+  # only specify what's actually different for that VM.
+  vm_defaults = {
+    node_name      = var.node_name
+    datastore_id   = var.vm_datastore_id
+    template_vm_id = local.template_vm_id
+    image_id       = local.image_id
+    bridge         = var.network_bridge
+    prefix_length  = var.network_prefix_length
+    gateway        = var.network_gateway
+    dns_servers    = var.dns_servers
+    username       = local.ansible_user
+    ssh_keys       = local.ssh_keys
+  }
+}
