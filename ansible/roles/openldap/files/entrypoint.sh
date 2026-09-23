@@ -5,26 +5,26 @@ set -euo pipefail
 
 FIRST_RUN_MARKER=/etc/ldap/slapd.d/.bootstrapped
 
-# Debian's postinst wants to talk to an init system that doesn't exist in
-# this container. This stops it trying, dpkg-reconfigure just writes config.
-printf '#!/bin/sh\nexit 101\n' > /usr/sbin/policy-rc.d
-chmod +x /usr/sbin/policy-rc.d
-
 if [ ! -f "$FIRST_RUN_MARKER" ]; then
   echo "[entrypoint] first run, bootstrapping directory"
 
-  debconf-set-selections <<EOF
+  debconf-set-selections <<EOF2
 slapd slapd/domain string ${OPENLDAP_DOMAIN}
 slapd shared/organization string ${OPENLDAP_ORG}
 slapd slapd/password1 password ${OPENLDAP_ADMIN_PASSWORD}
 slapd slapd/password2 password ${OPENLDAP_ADMIN_PASSWORD}
 slapd slapd/purge_database boolean false
 slapd slapd/move_old_database boolean true
-EOF
+EOF2
   dpkg-reconfigure -f noninteractive slapd
 
-  # TLS, matches the cert paths mounted at /certs
-  cat <<EOF > /tmp/tls.ldif
+  # dpkg-reconfigure's own postinst starts slapd to seed the initial
+  # entries and may leave it running. Stop it cleanly, our own bootstrap
+  # instance below needs the ldapi socket free.
+  pkill -x slapd || true
+  sleep 1
+
+  cat <<EOF2 > /tmp/tls.ldif
 dn: cn=config
 changetype: modify
 replace: olcTLSCACertificateFile
@@ -35,9 +35,8 @@ olcTLSCertificateFile: /certs/ldap.crt
 -
 replace: olcTLSCertificateKeyFile
 olcTLSCertificateKeyFile: /certs/ldap.key
-EOF
+EOF2
 
-  # Start slapd on ldapi only, just for this bootstrap pass
   /usr/sbin/slapd -h "ldapi:///" -u openldap -g openldap -d 0 &
   SLAPD_PID=$!
   for i in $(seq 1 30); do
@@ -62,7 +61,6 @@ EOF
   ldapadd -x -D "cn=admin,${OPENLDAP_BASE_DN}" -w "${OPENLDAP_ADMIN_PASSWORD}" -H ldapi:/// \
     -f <(envsubst < /bootstrap/default-ppolicy.ldif.tpl)
 
-  # sudo schema, shipped by the sudo-ldap package we installed at build time
   zcat -f /usr/share/doc/sudo-ldap/schema.OpenLDAP* | \
     slapadd -n 0 -F /etc/ldap/slapd.d -l /dev/stdin || \
     echo "[entrypoint] sudo schema load skipped, check manually"
