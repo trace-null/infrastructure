@@ -6,15 +6,15 @@ FROM debian:13-slim
 
 ENV DEBIAN_FRONTEND=noninteractive
 
-RUN apt-get update && apt-get install -y --no-install-recommends \
+RUN printf 'slapd slapd/no_configuration boolean true\n' | debconf-set-selections \
+    && apt-get update && apt-get install -y --no-install-recommends \
         slapd ldap-utils sudo-ldap ca-certificates gettext-base gzip \
     && mkdir -p /bootstrap \
     && apt-get download sudo-ldap \
     && dpkg-deb -x sudo-ldap_*.deb /tmp/sudo-ldap-extract \
     && cp /tmp/sudo-ldap-extract/usr/share/doc/sudo-ldap/schema.OpenLDAP /bootstrap/sudo.schema \
     && rm -rf /tmp/sudo-ldap-extract sudo-ldap_*.deb \
-    && rm -rf /var/lib/apt/lists/* \
-    && rm -rf /etc/ldap/slapd.d/* /var/lib/ldap/*
+    && rm -rf /var/lib/apt/lists/*
 
 # Bake the schema and overlay LDIFs in. These are the same files the
 # Ansible role used, reused here so the two approaches don't drift apart.

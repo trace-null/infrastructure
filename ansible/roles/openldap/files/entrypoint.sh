@@ -5,32 +5,33 @@ set -euo pipefail
 
 FIRST_RUN_MARKER=/etc/ldap/slapd.d/.bootstrapped
 
-# The base image ships /usr/sbin/policy-rc.d denying every service action,
-# standard Docker convention to stop daemons auto-starting during apt
-# installs. slapd's own postinst needs to briefly start itself to seed
-# the initial database, so override it to allow that, for this
-# container's whole lifetime, there's no real init system here to protect.
-printf '#!/bin/sh\nexit 0\n' > /usr/sbin/policy-rc.d
-chmod +x /usr/sbin/policy-rc.d
-
 if [ ! -f "$FIRST_RUN_MARKER" ]; then
   echo "[entrypoint] first run, bootstrapping directory"
 
-  debconf-set-selections <<EOF2
-slapd slapd/domain string ${OPENLDAP_DOMAIN}
-slapd shared/organization string ${OPENLDAP_ORG}
-slapd slapd/password1 password ${OPENLDAP_ADMIN_PASSWORD}
-slapd slapd/password2 password ${OPENLDAP_ADMIN_PASSWORD}
-slapd slapd/purge_database boolean false
-slapd slapd/move_old_database boolean true
-EOF2
-  dpkg-reconfigure -f noninteractive slapd
+  HASHED_PW=$(slappasswd -s "${OPENLDAP_ADMIN_PASSWORD}")
 
-  # Its postinst just started slapd via the init script to seed the
-  # initial entries. Stop it the same way, our bootstrap instance below
-  # needs the ldapi socket free.
-  invoke-rc.d slapd stop || true
-  sleep 1
+  cat <<EOF2 > /tmp/slapd.conf
+include /etc/ldap/schema/core.schema
+include /etc/ldap/schema/cosine.schema
+include /etc/ldap/schema/nis.schema
+include /etc/ldap/schema/inetorgperson.schema
+
+pidfile /run/slapd/slapd.pid
+argsfile /run/slapd/slapd.args
+
+database mdb
+maxsize 1073741824
+suffix "${OPENLDAP_BASE_DN}"
+rootdn "cn=admin,${OPENLDAP_BASE_DN}"
+rootpw ${HASHED_PW}
+directory /var/lib/ldap
+EOF2
+
+  slaptest -f /tmp/slapd.conf -F /etc/ldap/slapd.d
+  chown -R openldap:openldap /etc/ldap/slapd.d /var/lib/ldap
+
+  mkdir -p /run/slapd
+  chown openldap:openldap /run/slapd
 
   cat <<EOF2 > /tmp/tls.ldif
 dn: cn=config
@@ -69,9 +70,6 @@ EOF2
   ldapadd -x -D "cn=admin,${OPENLDAP_BASE_DN}" -w "${OPENLDAP_ADMIN_PASSWORD}" -H ldapi:/// \
     -f <(envsubst < /bootstrap/default-ppolicy.ldif.tpl)
 
-  # sudo schema, extracted from the sudo-ldap .deb at build time. The base
-  # image strips /usr/share/doc/* from installed packages, so the file
-  # isn't actually on disk after a normal apt install, see the Dockerfile.
   slapadd -n 0 -F /etc/ldap/slapd.d -l /bootstrap/sudo.schema || \
     echo "[entrypoint] sudo schema load skipped, check manually"
 
@@ -82,7 +80,7 @@ EOF2
   echo "[entrypoint] bootstrap complete"
 fi
 
+echo "[entrypoint] starting slapd"
 mkdir -p /run/slapd
 chown openldap:openldap /run/slapd
-echo "[entrypoint] starting slapd"
 exec /usr/sbin/slapd -h "ldap:/// ldapi:/// ldaps:///" -u openldap -g openldap -d 0
