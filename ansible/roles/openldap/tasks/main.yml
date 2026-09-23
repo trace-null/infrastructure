@@ -24,7 +24,7 @@
   loop:
     - Dockerfile
     - entrypoint.sh
-    - bootstrap/
+    - bootstrap
     - compose.yml
   notify: "Rebuild openldap after file changes"
 
