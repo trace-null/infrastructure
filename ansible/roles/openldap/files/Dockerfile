@@ -16,6 +16,11 @@ RUN printf 'slapd slapd/no_configuration boolean true\n' | debconf-set-selection
     && rm -rf /tmp/sudo-ldap-extract sudo-ldap_*.deb \
     && rm -rf /var/lib/apt/lists/*
 
+# Trust the internal CA for client tools run inside the container
+# (docker exec ... ldapsearch -H ldaps://...), otherwise libldap rejects
+# the server cert and reports it as "Can't contact LDAP server (-1)".
+RUN printf 'TLS_CACERT /certs/ca.crt\n' > /etc/ldap/ldap.conf
+
 # Bake the schema and overlay LDIFs in. These are the same files the
 # Ansible role used, reused here so the two approaches don't drift apart.
 COPY bootstrap/ /bootstrap/

@@ -2,6 +2,9 @@ services:
   openldap:
     build: .
     container_name: openldap
+    # Match the cert's SAN, libldap canonicalises ldaps://localhost to the
+    # container hostname before checking it against the certificate.
+    hostname: ldap.${OPENLDAP_DOMAIN}
     restart: unless-stopped
     environment:
       - OPENLDAP_DOMAIN=${OPENLDAP_DOMAIN}
