@@ -32,6 +32,8 @@ EOF2
 
   rm -rf /etc/ldap/slapd.d/*
   rm -rf /etc/ldap/slapd.d/*
+  mkdir -p /run/slapd
+  chown openldap:openldap /run/slapd
   slaptest -u -f /tmp/slapd.conf -F /etc/ldap/slapd.d
   chown -R openldap:openldap /etc/ldap/slapd.d /var/lib/ldap
   cat <<EOF2 > /tmp/root-entry.ldif
