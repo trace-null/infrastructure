@@ -22,6 +22,10 @@ argsfile /run/slapd/slapd.args
 modulepath /usr/lib/ldap
 moduleload back_mdb.la
 
+database config
+rootdn "cn=admin,cn=config"
+rootpw ${HASHED_PW}
+
 database mdb
 maxsize 1073741824
 suffix "${OPENLDAP_BASE_DN}"
@@ -30,7 +34,6 @@ rootpw ${HASHED_PW}
 directory /var/lib/ldap
 EOF2
 
-  rm -rf /etc/ldap/slapd.d/*
   rm -rf /etc/ldap/slapd.d/*
   mkdir -p /run/slapd
   chown openldap:openldap /run/slapd
@@ -46,9 +49,6 @@ EOF2
   slapadd -f /tmp/slapd.conf -l /tmp/root-entry.ldif
   slaptest -f /tmp/slapd.conf -F /etc/ldap/slapd.d
   chown -R openldap:openldap /etc/ldap/slapd.d /var/lib/ldap
-
-  mkdir -p /run/slapd
-  chown openldap:openldap /run/slapd
 
   cat <<EOF2 > /tmp/tls.ldif
 dn: cn=config
@@ -72,17 +72,19 @@ EOF2
     sleep 0.5
   done
 
-  ldapmodify -Y EXTERNAL -H ldapi:/// -f /tmp/tls.ldif
-  ldapadd -Y EXTERNAL -H ldapi:/// -f /bootstrap/openssh-lpk.ldif
-  ldapadd -Y EXTERNAL -H ldapi:/// -f /bootstrap/00-modules.ldif
+  CONFIG_BIND=(-x -D "cn=admin,cn=config" -w "${OPENLDAP_ADMIN_PASSWORD}" -H ldapi:///)
+
+  ldapmodify "${CONFIG_BIND[@]}" -f /tmp/tls.ldif
+  ldapadd "${CONFIG_BIND[@]}" -f /bootstrap/openssh-lpk.ldif
+  ldapadd "${CONFIG_BIND[@]}" -f /bootstrap/00-modules.ldif
 
   export OPENLDAP_DB_DN
-  OPENLDAP_DB_DN=$(ldapsearch -Y EXTERNAL -H ldapi:/// -b cn=config -LLL \
+  OPENLDAP_DB_DN=$(ldapsearch "${CONFIG_BIND[@]}" -b cn=config -LLL \
     "(&(objectClass=olcMdbConfig)(olcSuffix=${OPENLDAP_BASE_DN}))" dn \
     | grep '^dn: ' | sed 's/^dn: //')
 
   envsubst < /bootstrap/overlays.ldif.tpl > /tmp/overlays.ldif
-  ldapadd -Y EXTERNAL -H ldapi:/// -f /tmp/overlays.ldif
+  ldapadd "${CONFIG_BIND[@]}" -f /tmp/overlays.ldif
 
   ldapadd -x -D "cn=admin,${OPENLDAP_BASE_DN}" -w "${OPENLDAP_ADMIN_PASSWORD}" -H ldapi:/// \
     -f <(envsubst < /bootstrap/base-ou.ldif.tpl)
