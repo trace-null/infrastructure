@@ -15,7 +15,7 @@ if [ ! -f "$FIRST_RUN_MARKER" ]; then
 
   debconf-set-selections <<EOF
 slapd slapd/domain string ${OPENLDAP_DOMAIN}
-shared/organization string ${OPENLDAP_ORG}
+slapd shared/organization string ${OPENLDAP_ORG}
 slapd slapd/password1 password ${OPENLDAP_ADMIN_PASSWORD}
 slapd slapd/password2 password ${OPENLDAP_ADMIN_PASSWORD}
 slapd slapd/purge_database boolean false
