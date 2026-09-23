@@ -8,6 +8,11 @@ FIRST_RUN_MARKER=/etc/ldap/slapd.d/.bootstrapped
 if [ ! -f "$FIRST_RUN_MARKER" ]; then
   echo "[entrypoint] first run, bootstrapping directory"
 
+  # Also clean up on failure. A restart reuses the container's filesystem,
+  # so a crash loop would otherwise keep slapd.conf and its hashed rootpw.
+  # exec at the bottom replaces the process, so this never fires there.
+  trap 'rm -f /tmp/slapd.conf /tmp/root-entry.ldif /tmp/tls.ldif /tmp/overlays.ldif' EXIT
+
   HASHED_PW=$(slappasswd -s "${OPENLDAP_ADMIN_PASSWORD}")
 
   cat <<EOF2 > /tmp/slapd.conf
@@ -35,7 +40,9 @@ rootpw ${HASHED_PW}
 directory /var/lib/ldap
 EOF2
 
-  rm -rf /etc/ldap/slapd.d/*
+  # Clear both, so a retry after a partial bootstrap doesn't hit
+  # MDB_KEYEXIST re-adding the root entry.
+  rm -rf /etc/ldap/slapd.d/* /var/lib/ldap/*
   mkdir -p /run/slapd
   chown openldap:openldap /run/slapd
 
