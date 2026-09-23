@@ -1,0 +1,16 @@
+dn: cn=default,ou=policies,${OPENLDAP_BASE_DN}
+objectClass: pwdPolicy
+objectClass: person
+objectClass: top
+cn: default
+sn: default
+pwdAttribute: userPassword
+pwdMaxAge: 7776000
+pwdExpireWarning: 604800
+pwdMinLength: 12
+pwdInHistory: 5
+pwdMaxFailure: 5
+pwdLockout: TRUE
+pwdLockoutDuration: 900
+pwdMustChange: TRUE
+pwdAllowUserChange: TRUE

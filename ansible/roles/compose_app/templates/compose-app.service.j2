@@ -8,8 +8,8 @@ RequiresMountsFor={{ compose_app_share_path }}
 Type=oneshot
 RemainAfterExit=yes
 WorkingDirectory={{ compose_app_project_dir }}
-ExecStart=/usr/bin/docker compose up -d --remove-orphans
-ExecReload=/usr/bin/docker compose up -d --remove-orphans
+ExecStart=/usr/bin/docker compose up -d --build --remove-orphans
+ExecReload=/usr/bin/docker compose up -d --build --remove-orphans
 ExecStop=/usr/bin/docker compose stop
 TimeoutStartSec=1200
 

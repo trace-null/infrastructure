@@ -1,0 +1,20 @@
+# Base DN and directory structure, bootstrapped on first run.
+openldap_base_dn: "dc=tracenull,dc=fyi"
+openldap_domain: "tracenull.fyi"
+openldap_org: "tracenull"
+
+# Persistent data lives on the virtiofs share from the host dataset.
+# Distinct mount point from Authentik's, since both roles share this VM.
+openldap_share_tag: openldap-data
+openldap_share_path: /mnt/infra/openldap
+
+openldap_project_dir: /opt/openldap
+
+# Admin password, pulled from OpenBao at converge time via the ansible
+# AppRole (see inventory/group_vars/all.yml).
+openldap_vault_secret: >-
+  {{ lookup('community.hashi_vault.hashi_vault',
+     'secret=secret/data/apps/openldap',
+     url=vault_addr, ca_cert=vault_ca_cert, auth_method='approle',
+     role_id=vault_role_id, secret_id=vault_secret_id) }}
+openldap_admin_password: "{{ openldap_vault_secret.admin_password }}"
