@@ -15,6 +15,7 @@ include /etc/ldap/schema/core.schema
 include /etc/ldap/schema/cosine.schema
 include /etc/ldap/schema/nis.schema
 include /etc/ldap/schema/inetorgperson.schema
+include /bootstrap/sudo.schema
 
 pidfile /run/slapd/slapd.pid
 argsfile /run/slapd/slapd.args
@@ -90,9 +91,6 @@ EOF2
     -f <(envsubst < /bootstrap/base-ou.ldif.tpl)
   ldapadd -x -D "cn=admin,${OPENLDAP_BASE_DN}" -w "${OPENLDAP_ADMIN_PASSWORD}" -H ldapi:/// \
     -f <(envsubst < /bootstrap/default-ppolicy.ldif.tpl)
-
-  slapadd -n 0 -F /etc/ldap/slapd.d -l /bootstrap/sudo.schema || \
-    echo "[entrypoint] sudo schema load skipped, check manually"
 
   kill "$SLAPD_PID"
   wait "$SLAPD_PID" 2>/dev/null || true
