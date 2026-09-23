@@ -82,5 +82,7 @@ EOF2
   echo "[entrypoint] bootstrap complete"
 fi
 
+mkdir -p /run/slapd
+chown openldap:openldap /run/slapd
 echo "[entrypoint] starting slapd"
 exec /usr/sbin/slapd -h "ldap:/// ldapi:/// ldaps:///" -u openldap -g openldap -d 0
