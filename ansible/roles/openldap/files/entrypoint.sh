@@ -60,6 +60,8 @@ replace: olcTLSCertificateKeyFile
 olcTLSCertificateKeyFile: /certs/ldap.key
 EOF2
 
+  mkdir -p /run/slapd
+  chown openldap:openldap /run/slapd
   /usr/sbin/slapd -h "ldapi:///" -u openldap -g openldap -d 0 &
   SLAPD_PID=$!
   for i in $(seq 1 30); do
