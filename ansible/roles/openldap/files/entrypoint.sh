@@ -5,6 +5,14 @@ set -euo pipefail
 
 FIRST_RUN_MARKER=/etc/ldap/slapd.d/.bootstrapped
 
+# The base image ships /usr/sbin/policy-rc.d denying every service action,
+# standard Docker convention to stop daemons auto-starting during apt
+# installs. slapd's own postinst needs to briefly start itself to seed
+# the initial database, so override it to allow that, for this
+# container's whole lifetime, there's no real init system here to protect.
+printf '#!/bin/sh\nexit 0\n' > /usr/sbin/policy-rc.d
+chmod +x /usr/sbin/policy-rc.d
+
 if [ ! -f "$FIRST_RUN_MARKER" ]; then
   echo "[entrypoint] first run, bootstrapping directory"
 
@@ -18,10 +26,10 @@ slapd slapd/move_old_database boolean true
 EOF2
   dpkg-reconfigure -f noninteractive slapd
 
-  # dpkg-reconfigure's own postinst starts slapd to seed the initial
-  # entries and may leave it running. Stop it cleanly, our own bootstrap
-  # instance below needs the ldapi socket free.
-  pkill -x slapd || true
+  # Its postinst just started slapd via the init script to seed the
+  # initial entries. Stop it the same way, our bootstrap instance below
+  # needs the ldapi socket free.
+  invoke-rc.d slapd stop || true
   sleep 1
 
   cat <<EOF2 > /tmp/tls.ldif
