@@ -43,7 +43,7 @@ objectClass: organization
 o: ${OPENLDAP_ORG}
 dc: ${OPENLDAP_DOMAIN%%.*}
 EOF2
-  slapadd -F /etc/ldap/slapd.d -n 1 -l /tmp/root-entry.ldif
+  slapadd -F /etc/ldap/slapd.d -n 0 -l /tmp/root-entry.ldif
   chown -R openldap:openldap /var/lib/ldap
 
   mkdir -p /run/slapd
