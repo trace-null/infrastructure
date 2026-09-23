@@ -1,0 +1,28 @@
+# Pin the base image by digest once you've picked one, same principle as
+# everywhere else in the repo:
+#   docker pull debian:13-slim
+#   docker inspect --format='{{index .RepoDigests 0}}' debian:13-slim
+FROM debian:13-slim
+
+ENV DEBIAN_FRONTEND=noninteractive
+
+RUN printf 'slapd slapd/no_configuration boolean true\n' | debconf-set-selections \
+    && apt-get update && apt-get install -y --no-install-recommends \
+        slapd ldap-utils sudo-ldap ca-certificates gettext-base gzip \
+    && mkdir -p /bootstrap \
+    && apt-get download sudo-ldap \
+    && dpkg-deb -x sudo-ldap_*.deb /tmp/sudo-ldap-extract \
+    && cp /tmp/sudo-ldap-extract/usr/share/doc/sudo-ldap/schema.OpenLDAP /bootstrap/sudo.schema \
+    && rm -rf /tmp/sudo-ldap-extract sudo-ldap_*.deb \
+    && rm -rf /var/lib/apt/lists/*
+
+# Bake the schema and overlay LDIFs in. These are the same files the
+# Ansible role used, reused here so the two approaches don't drift apart.
+COPY bootstrap/ /bootstrap/
+COPY entrypoint.sh /entrypoint.sh
+RUN chmod +x /entrypoint.sh
+
+VOLUME ["/var/lib/ldap", "/etc/ldap/slapd.d", "/certs"]
+EXPOSE 636
+
+ENTRYPOINT ["/entrypoint.sh"]

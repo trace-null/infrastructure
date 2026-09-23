@@ -1,0 +1,44 @@
+- name: Check that the admin password is present
+  ansible.builtin.assert:
+    that:
+      - openldap_admin_password | length > 0
+    fail_msg: >-
+      admin_password is missing from OpenBao under secret/apps/openldap.
+    quiet: true
+
+- name: Create the project directory
+  ansible.builtin.file:
+    path: "{{ openldap_project_dir }}"
+    state: directory
+    owner: root
+    group: root
+    mode: "0755"
+
+- name: Copy the compose stack into place
+  ansible.builtin.copy:
+    src: "{{ item }}"
+    dest: "{{ openldap_project_dir }}/"
+    owner: root
+    group: root
+    mode: preserve
+  loop:
+    - Dockerfile
+    - entrypoint.sh
+    - bootstrap
+    - compose.yml
+  notify: "Rebuild openldap after file changes"
+
+- name: Run the generic compose-app tasks
+  ansible.builtin.include_role:
+    name: compose_app
+  vars:
+    compose_app_name: openldap
+    compose_app_display_name: OpenLDAP
+    compose_app_share_tag: "{{ openldap_share_tag }}"
+    compose_app_share_path: "{{ openldap_share_path }}"
+    compose_app_project_dir: "{{ openldap_project_dir }}"
+    compose_app_env:
+      OPENLDAP_DOMAIN: "{{ openldap_domain }}"
+      OPENLDAP_ORG: "{{ openldap_org }}"
+      OPENLDAP_BASE_DN: "{{ openldap_base_dn }}"
+      OPENLDAP_ADMIN_PASSWORD: "{{ openldap_admin_password }}"

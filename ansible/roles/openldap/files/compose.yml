@@ -1,0 +1,25 @@
+services:
+  openldap:
+    build: .
+    container_name: openldap
+    restart: unless-stopped
+    environment:
+      - OPENLDAP_DOMAIN=${OPENLDAP_DOMAIN}
+      - OPENLDAP_ORG=${OPENLDAP_ORG}
+      - OPENLDAP_BASE_DN=${OPENLDAP_BASE_DN}
+      - OPENLDAP_ADMIN_PASSWORD=${OPENLDAP_ADMIN_PASSWORD}
+    volumes:
+      - /mnt/infra/openldap/data:/var/lib/ldap
+      - /mnt/infra/openldap/slapd.d:/etc/ldap/slapd.d
+      - /mnt/infra/openldap/certs:/certs:ro
+    ports:
+      - "636:636"
+
+  lam:
+    image: ghcr.io/ldapaccountmanager/lam:stable
+    container_name: lam
+    restart: unless-stopped
+    depends_on:
+      - openldap
+    ports:
+      - "127.0.0.1:8443:8443"

@@ -57,9 +57,9 @@ module "infrastructure_stack" {
   memory_mb       = 4096
   disk_gb         = 30
   ip_address      = local.authentik_ip
-  tags            = ["authentik", "opentofu"]
-  virtiofs_shares = [{ mapping = "authentik-data" }]
-  description     = "Authentik SSO. Managed by OpenTofu."
+  tags            = ["authentik", "openldap", "opentofu"]
+  virtiofs_shares = [{ mapping = "authentik-data" }, { mapping = "openldap-data" }]
+  description     = "Authentik SSO and OpenLDAP. Managed by OpenTofu."
 
   node_name      = local.vm_defaults.node_name
   datastore_id   = local.vm_defaults.datastore_id

@@ -12,3 +12,7 @@
 - name: "Apply authentik compose"
   ansible.builtin.command: systemctl reload-or-restart authentik-compose.service
   changed_when: true
+
+- name: "Apply openldap compose"
+  ansible.builtin.command: systemctl reload-or-restart openldap-compose.service
+  changed_when: true

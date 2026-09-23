@@ -19,3 +19,10 @@
   roles:
     - baseline
     - authentik
+
+- name: OpenLDAP
+  hosts: openldap_hosts
+  become: true
+  roles:
+    - baseline
+    - openldap
