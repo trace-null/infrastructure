@@ -8,6 +8,11 @@ FIRST_RUN_MARKER=/etc/ldap/slapd.d/.bootstrapped
 if [ ! -f "$FIRST_RUN_MARKER" ]; then
   echo "[entrypoint] first run, bootstrapping directory"
 
+  # Also clean up on failure. A restart reuses the container's filesystem,
+  # so a crash loop would otherwise keep slapd.conf and its hashed rootpw.
+  # exec at the bottom replaces the process, so this never fires there.
+  trap 'rm -f /tmp/slapd.conf /tmp/root-entry.ldif /tmp/tls.ldif /tmp/overlays.ldif' EXIT
+
   HASHED_PW=$(slappasswd -s "${OPENLDAP_ADMIN_PASSWORD}")
 
   cat <<EOF2 > /tmp/slapd.conf
@@ -15,6 +20,7 @@ include /etc/ldap/schema/core.schema
 include /etc/ldap/schema/cosine.schema
 include /etc/ldap/schema/nis.schema
 include /etc/ldap/schema/inetorgperson.schema
+include /bootstrap/sudo.schema
 
 pidfile /run/slapd/slapd.pid
 argsfile /run/slapd/slapd.args
@@ -34,7 +40,9 @@ rootpw ${HASHED_PW}
 directory /var/lib/ldap
 EOF2
 
-  rm -rf /etc/ldap/slapd.d/*
+  # Clear both, so a retry after a partial bootstrap doesn't hit
+  # MDB_KEYEXIST re-adding the root entry.
+  rm -rf /etc/ldap/slapd.d/* /var/lib/ldap/*
   mkdir -p /run/slapd
   chown openldap:openldap /run/slapd
 
@@ -91,14 +99,14 @@ EOF2
   ldapadd -x -D "cn=admin,${OPENLDAP_BASE_DN}" -w "${OPENLDAP_ADMIN_PASSWORD}" -H ldapi:/// \
     -f <(envsubst < /bootstrap/default-ppolicy.ldif.tpl)
 
-  slapadd -n 0 -F /etc/ldap/slapd.d -l /bootstrap/sudo.schema || \
-    echo "[entrypoint] sudo schema load skipped, check manually"
-
   kill "$SLAPD_PID"
   wait "$SLAPD_PID" 2>/dev/null || true
 
   touch "$FIRST_RUN_MARKER"
   echo "[entrypoint] bootstrap complete"
+
+  # slapd runs from cn=config now, and slapd.conf holds the hashed rootpw.
+  rm -f /tmp/slapd.conf /tmp/root-entry.ldif /tmp/tls.ldif /tmp/overlays.ldif
 fi
 
 echo "[entrypoint] starting slapd"
