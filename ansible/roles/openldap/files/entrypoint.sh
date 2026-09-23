@@ -97,6 +97,9 @@ EOF2
 
   touch "$FIRST_RUN_MARKER"
   echo "[entrypoint] bootstrap complete"
+
+  # slapd runs from cn=config now, and slapd.conf holds the hashed rootpw.
+  rm -f /tmp/slapd.conf /tmp/root-entry.ldif /tmp/tls.ldif /tmp/overlays.ldif
 fi
 
 echo "[entrypoint] starting slapd"
