@@ -8,6 +8,11 @@ ENV DEBIAN_FRONTEND=noninteractive
 
 RUN apt-get update && apt-get install -y --no-install-recommends \
         slapd ldap-utils sudo-ldap ca-certificates gettext-base gzip \
+    && mkdir -p /bootstrap \
+    && apt-get download sudo-ldap \
+    && dpkg-deb -x sudo-ldap_*.deb /tmp/sudo-ldap-extract \
+    && cp /tmp/sudo-ldap-extract/usr/share/doc/sudo-ldap/schema.OpenLDAP /bootstrap/sudo.schema \
+    && rm -rf /tmp/sudo-ldap-extract sudo-ldap_*.deb \
     && rm -rf /var/lib/apt/lists/* \
     && rm -rf /etc/ldap/slapd.d/* /var/lib/ldap/*
 

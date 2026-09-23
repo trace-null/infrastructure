@@ -69,8 +69,10 @@ EOF2
   ldapadd -x -D "cn=admin,${OPENLDAP_BASE_DN}" -w "${OPENLDAP_ADMIN_PASSWORD}" -H ldapi:/// \
     -f <(envsubst < /bootstrap/default-ppolicy.ldif.tpl)
 
-  zcat -f /usr/share/doc/sudo-ldap/schema.OpenLDAP* | \
-    slapadd -n 0 -F /etc/ldap/slapd.d -l /dev/stdin || \
+  # sudo schema, extracted from the sudo-ldap .deb at build time. The base
+  # image strips /usr/share/doc/* from installed packages, so the file
+  # isn't actually on disk after a normal apt install, see the Dockerfile.
+  slapadd -n 0 -F /etc/ldap/slapd.d -l /bootstrap/sudo.schema || \
     echo "[entrypoint] sudo schema load skipped, check manually"
 
   kill "$SLAPD_PID"
