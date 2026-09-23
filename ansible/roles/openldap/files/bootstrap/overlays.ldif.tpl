@@ -12,7 +12,10 @@ dn: olcOverlay=refint,${OPENLDAP_DB_DN}
 objectClass: olcOverlayConfig
 objectClass: olcRefintConfig
 olcOverlay: refint
-olcRefintAttribute: memberof member manager owner
+olcRefintAttribute: memberof
+olcRefintAttribute: member
+olcRefintAttribute: manager
+olcRefintAttribute: owner
 
 dn: olcOverlay=unique,${OPENLDAP_DB_DN}
 objectClass: olcOverlayConfig
