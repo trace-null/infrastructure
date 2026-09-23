@@ -30,8 +30,12 @@ rootpw ${HASHED_PW}
 directory /var/lib/ldap
 EOF2
 
+  rm -rf /etc/ldap/slapd.d/*
+  rm -rf /etc/ldap/slapd.d/*
   slaptest -f /tmp/slapd.conf -F /etc/ldap/slapd.d
   chown -R openldap:openldap /etc/ldap/slapd.d /var/lib/ldap
+  slapadd -F /etc/ldap/slapd.d -n 1 -l /dev/null
+  chown -R openldap:openldap /var/lib/ldap
 
   mkdir -p /run/slapd
   chown openldap:openldap /run/slapd
