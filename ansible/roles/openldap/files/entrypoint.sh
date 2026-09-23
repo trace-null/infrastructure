@@ -32,7 +32,7 @@ EOF2
 
   rm -rf /etc/ldap/slapd.d/*
   rm -rf /etc/ldap/slapd.d/*
-  slaptest -f /tmp/slapd.conf -F /etc/ldap/slapd.d
+  slaptest -u -f /tmp/slapd.conf -F /etc/ldap/slapd.d
   chown -R openldap:openldap /etc/ldap/slapd.d /var/lib/ldap
   cat <<EOF2 > /tmp/root-entry.ldif
 dn: ${OPENLDAP_BASE_DN}
