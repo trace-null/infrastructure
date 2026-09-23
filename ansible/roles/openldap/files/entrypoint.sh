@@ -34,8 +34,7 @@ EOF2
   rm -rf /etc/ldap/slapd.d/*
   mkdir -p /run/slapd
   chown openldap:openldap /run/slapd
-  slaptest -u -f /tmp/slapd.conf -F /etc/ldap/slapd.d
-  chown -R openldap:openldap /etc/ldap/slapd.d /var/lib/ldap
+
   cat <<EOF2 > /tmp/root-entry.ldif
 dn: ${OPENLDAP_BASE_DN}
 objectClass: dcObject
@@ -43,8 +42,10 @@ objectClass: organization
 o: ${OPENLDAP_ORG}
 dc: ${OPENLDAP_DOMAIN%%.*}
 EOF2
-  slapadd -F /etc/ldap/slapd.d -n 0 -l /tmp/root-entry.ldif
-  chown -R openldap:openldap /var/lib/ldap
+
+  slapadd -f /tmp/slapd.conf -l /tmp/root-entry.ldif
+  slaptest -f /tmp/slapd.conf -F /etc/ldap/slapd.d
+  chown -R openldap:openldap /etc/ldap/slapd.d /var/lib/ldap
 
   mkdir -p /run/slapd
   chown openldap:openldap /run/slapd
