@@ -6,17 +6,13 @@ FROM debian:13-slim
 
 ENV DEBIAN_FRONTEND=noninteractive
 
-RUN printf '#!/bin/sh\nexit 101\n' > /usr/sbin/policy-rc.d \
-    && chmod +x /usr/sbin/policy-rc.d \
-    && apt-get update && apt-get install -y --no-install-recommends \
+RUN apt-get update && apt-get install -y --no-install-recommends \
         slapd ldap-utils sudo-ldap ca-certificates gettext-base gzip \
     && mkdir -p /bootstrap \
     && apt-get download sudo-ldap \
     && dpkg-deb -x sudo-ldap_*.deb /tmp/sudo-ldap-extract \
     && cp /tmp/sudo-ldap-extract/usr/share/doc/sudo-ldap/schema.OpenLDAP /bootstrap/sudo.schema \
     && rm -rf /tmp/sudo-ldap-extract sudo-ldap_*.deb \
-    && dpkg --purge slapd \
-    && rm -f /usr/sbin/policy-rc.d \
     && rm -rf /var/lib/apt/lists/* \
     && rm -rf /etc/ldap/slapd.d/* /var/lib/ldap/*
 
