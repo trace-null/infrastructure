@@ -19,6 +19,9 @@ include /etc/ldap/schema/inetorgperson.schema
 pidfile /run/slapd/slapd.pid
 argsfile /run/slapd/slapd.args
 
+modulepath /usr/lib/ldap
+moduleload back_mdb.la
+
 database mdb
 maxsize 1073741824
 suffix "${OPENLDAP_BASE_DN}"
