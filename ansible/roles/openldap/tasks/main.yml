@@ -26,7 +26,7 @@
     - entrypoint.sh
     - bootstrap/
     - compose.yml
-  notify: "Apply openldap compose"
+  notify: "Rebuild openldap after file changes"
 
 - name: Run the generic compose-app tasks
   ansible.builtin.include_role:
