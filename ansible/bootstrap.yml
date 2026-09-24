@@ -24,5 +24,7 @@
   hosts: openldap_hosts
   become: true
   roles:
-    - baseline
-    - openldap
+    - role: baseline
+      when: openldap_deploy_enabled | default(false)
+    - role: openldap
+      when: openldap_deploy_enabled | default(false)
