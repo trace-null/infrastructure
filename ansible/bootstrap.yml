@@ -22,8 +22,9 @@
 
 - name: OpenLDAP
   hosts: openldap_hosts
-  when: openldap_deploy_enabled | default(false)
   become: true
   roles:
-    - baseline
-    - openldap
+    - role: baseline
+      when: openldap_deploy_enabled | default(false)
+    - role: openldap
+      when: openldap_deploy_enabled | default(false)
