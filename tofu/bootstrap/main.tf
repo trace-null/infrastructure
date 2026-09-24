@@ -48,6 +48,30 @@ module "gitlab" {
   ssh_keys       = local.vm_defaults.ssh_keys
 }
 
+module "gitlab_runner" {
+  source = "../modules/vm"
+
+  name        = "gitlab-runner-1"
+  vm_id       = 212
+  cores       = 2
+  memory_mb   = 4096
+  disk_gb     = 40
+  ip_address  = local.gitlab_runner_ip
+  tags        = ["gitlab-runner", "opentofu"]
+  description = "GitLab CI runner, docker executor. Stateless, no shares. Managed by OpenTofu."
+
+  node_name      = local.vm_defaults.node_name
+  datastore_id   = local.vm_defaults.datastore_id
+  template_vm_id = local.vm_defaults.template_vm_id
+  image_id       = local.vm_defaults.image_id
+  bridge         = local.vm_defaults.bridge
+  prefix_length  = local.vm_defaults.prefix_length
+  gateway        = local.vm_defaults.gateway
+  dns_servers    = local.vm_defaults.dns_servers
+  username       = local.vm_defaults.username
+  ssh_keys       = local.vm_defaults.ssh_keys
+}
+
 module "infrastructure_stack" {
   source = "../modules/vm"
 

@@ -13,6 +13,13 @@
     - baseline
     - gitlab
 
+- name: GitLab runner
+  hosts: gitlab_runner_hosts
+  become: true
+  roles:
+    - baseline
+    - gitlab_runner
+
 - name: Authentik
   hosts: authentik_hosts
   become: true

@@ -3,10 +3,11 @@ locals {
   inventory  = yamldecode(file("${path.module}/../../ansible/inventory/hosts.yml"))
   group_vars = yamldecode(file("${path.module}/../../ansible/inventory/group_vars/all.yml"))
 
-  openbao_ip   = local.inventory.all.children.openbao_hosts.hosts["openbao-1"].ansible_host
-  gitlab_ip    = local.inventory.all.children.gitlab_hosts.hosts["gitlab-1"].ansible_host
-  authentik_ip = local.inventory.all.children.authentik_hosts.hosts["infrastructure-stack"].ansible_host
-  ansible_user = local.group_vars.ansible_user
+  openbao_ip       = local.inventory.all.children.openbao_hosts.hosts["openbao-1"].ansible_host
+  gitlab_ip        = local.inventory.all.children.gitlab_hosts.hosts["gitlab-1"].ansible_host
+  gitlab_runner_ip = local.inventory.all.children.gitlab_runner_hosts.hosts["gitlab-runner-1"].ansible_host
+  authentik_ip     = local.inventory.all.children.authentik_hosts.hosts["infrastructure-stack"].ansible_host
+  ansible_user     = local.group_vars.ansible_user
 
   # Public keys allowed to log in as the Ansible user. One per line in authorized_keys.
   ssh_keys = [

@@ -5,46 +5,53 @@
 #
 # Required vars:
 #   compose_app_name         - short name, used for the systemd unit and drop-in
-#   compose_app_share_tag    - virtiofs mapping name
-#   compose_app_share_path   - mount point, e.g. /mnt/infra
 #   compose_app_project_dir  - where compose.yml already lives
 #   compose_app_env          - dict of KEY: value written to .env
+#
+# Optional, for apps with persistent data:
+#   compose_app_share_tag    - virtiofs mapping name
+#   compose_app_share_path   - mount point, e.g. /mnt/infra
 
-- name: "{{ compose_app_name }}: create the mount point"
-  ansible.builtin.file:
-    path: "{{ compose_app_share_path }}"
-    state: directory
+# Stateless apps (like the CI runner) leave compose_app_share_tag unset and
+# skip the share entirely.
+- name: "{{ compose_app_name }}: mount the persistent share"
+  when: compose_app_share_tag | default('') | length > 0
+  block:
+    - name: "{{ compose_app_name }}: create the mount point"
+      ansible.builtin.file:
+        path: "{{ compose_app_share_path }}"
+        state: directory
 
-# nofail keeps the VM booting if the share is missing. Docker and the stack
-# both require the mount, so the app can never write to the VM disk by mistake.
-- name: "{{ compose_app_name }}: mount the virtiofs share"
-  ansible.posix.mount:
-    path: "{{ compose_app_share_path }}"
-    src: "{{ compose_app_share_tag }}"
-    fstype: virtiofs
-    opts: defaults,nofail,x-systemd.device-timeout=10s
-    state: mounted
+    # nofail keeps the VM booting if the share is missing. Docker and the stack
+    # both require the mount, so the app can never write to the VM disk by mistake.
+    - name: "{{ compose_app_name }}: mount the virtiofs share"
+      ansible.posix.mount:
+        path: "{{ compose_app_share_path }}"
+        src: "{{ compose_app_share_tag }}"
+        fstype: virtiofs
+        opts: defaults,nofail,x-systemd.device-timeout=10s
+        state: mounted
 
-- name: "{{ compose_app_name }}: check that the share really is mounted"
-  ansible.builtin.command: findmnt --noheadings --output FSTYPE {{ compose_app_share_path | quote }}
-  register: compose_app_mount_check
-  changed_when: false
-  failed_when: compose_app_mount_check.stdout | trim != 'virtiofs'
+    - name: "{{ compose_app_name }}: check that the share really is mounted"
+      ansible.builtin.command: findmnt --noheadings --output FSTYPE {{ compose_app_share_path | quote }}
+      register: compose_app_mount_check
+      changed_when: false
+      failed_when: compose_app_mount_check.stdout | trim != 'virtiofs'
 
-- name: "{{ compose_app_name }}: make Docker wait for the share"
-  ansible.builtin.file:
-    path: /etc/systemd/system/docker.service.d
-    state: directory
-    mode: "0755"
+    - name: "{{ compose_app_name }}: make Docker wait for the share"
+      ansible.builtin.file:
+        path: /etc/systemd/system/docker.service.d
+        state: directory
+        mode: "0755"
 
-- name: "{{ compose_app_name }}: install the Docker mount dependency"
-  ansible.builtin.copy:
-    content: |
-      [Unit]
-      RequiresMountsFor={{ compose_app_share_path }}
-    dest: "/etc/systemd/system/docker.service.d/10-{{ compose_app_name }}-share.conf"
-    mode: "0644"
-  notify: Reload systemd
+    - name: "{{ compose_app_name }}: install the Docker mount dependency"
+      ansible.builtin.copy:
+        content: |
+          [Unit]
+          RequiresMountsFor={{ compose_app_share_path }}
+        dest: "/etc/systemd/system/docker.service.d/10-{{ compose_app_name }}-share.conf"
+        mode: "0644"
+      notify: Reload systemd
 
 - name: "{{ compose_app_name }}: apply systemd changes before installing Docker"
   ansible.builtin.meta: flush_handlers

@@ -1,0 +1,24 @@
+# Managed by Ansible (gitlab_runner role). Holds the runner token.
+concurrent = {{ gitlab_runner_concurrent }}
+check_interval = 0
+shutdown_timeout = 0
+
+[session_server]
+  session_timeout = 1800
+
+[[runners]]
+  name = "{{ inventory_hostname }}"
+  url = "{{ gitlab_runner_gitlab_url }}"
+  clone_url = "{{ gitlab_runner_gitlab_url }}"
+  token = "{{ gitlab_runner_token }}"
+  executor = "docker"
+  [runners.docker]
+    image = "alpine:3"
+    privileged = true
+    allowed_privileged_images = {{ gitlab_runner_privileged_images | to_json }}
+    allowed_privileged_services = {{ gitlab_runner_privileged_images | to_json }}
+    # /certs/client is shared between the job and the dind service for TLS.
+    volumes = ["/certs/client", "/cache"]
+    tls_verify = false
+    disable_cache = false
+    shm_size = 0

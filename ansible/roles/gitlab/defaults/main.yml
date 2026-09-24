@@ -8,6 +8,15 @@ gitlab_external_url: "https://{{ gitlab_hostname }}"
 gitlab_http_port: 80
 gitlab_ssh_port: 2224
 
+# Container registry. The proxy terminates TLS for the registry hostname and
+# forwards to this port on the VM.
+gitlab_registry_hostname: "{{ lookup('ansible.builtin.env', 'GITLAB_REGISTRY_HOSTNAME') }}"
+gitlab_registry_port: 5050
+# Docker clients fetch registry tokens from here. The public hostname sits
+# behind Pangolin's auth gate, so point them at the internal address. Only
+# LAN clients (the runner, the app VMs) can log in to the registry.
+gitlab_registry_token_realm: "http://{{ hostvars[groups['gitlab_hosts'][0]].ansible_host }}"
+
 # Persistent data lives on the virtiofs share from the host dataset.
 gitlab_share_tag: gitlab-data
 gitlab_share_path: /mnt/infra

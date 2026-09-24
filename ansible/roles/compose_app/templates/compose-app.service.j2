@@ -2,7 +2,9 @@
 Description={{ compose_app_display_name | default(compose_app_name | capitalize) }} compose stack
 Requires=docker.service
 After=docker.service
+{% if compose_app_share_tag | default('') | length > 0 %}
 RequiresMountsFor={{ compose_app_share_path }}
+{% endif %}
 
 [Service]
 Type=oneshot
