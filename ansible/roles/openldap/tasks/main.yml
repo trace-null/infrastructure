@@ -2,31 +2,43 @@
   ansible.builtin.assert:
     that:
       - openldap_admin_password | length > 0
+      - openldap_deploy_key | length > 0
     fail_msg: >-
-      admin_password is missing from OpenBao under secret/apps/openldap.
+      admin_password or deploy_key is missing from OpenBao under
+      secret/apps/openldap.
     quiet: true
 
-- name: Create the project directory
+- name: Create the SSH directory for the deploy key
   ansible.builtin.file:
-    path: "{{ openldap_project_dir }}"
+    path: /root/.ssh
     state: directory
     owner: root
     group: root
-    mode: "0755"
+    mode: "0700"
 
-- name: Copy the compose stack into place
+- name: Install the deploy key for cloning the compose repository
   ansible.builtin.copy:
-    src: "{{ item }}"
-    dest: "{{ openldap_project_dir }}/"
+    content: "{{ openldap_deploy_key }}\n"
+    dest: /root/.ssh/openldap_deploy_key
     owner: root
     group: root
-    mode: preserve
-  loop:
-    - Dockerfile
-    - entrypoint.sh
-    - bootstrap
-    - compose.yml
-  notify: "Rebuild openldap after file changes"
+    mode: "0600"
+  no_log: true
+
+- name: Trust the GitLab host key
+  ansible.builtin.known_hosts:
+    name: "[{{ hostvars[groups['gitlab_hosts'][0]].ansible_host }}]:2224"
+    key: "{{ lookup('ansible.builtin.pipe', 'ssh-keyscan -p 2224 -t ed25519 ' ~ hostvars[groups['gitlab_hosts'][0]].ansible_host) }}"
+    path: /root/.ssh/known_hosts
+
+- name: Fetch the compose repository
+  ansible.builtin.git:
+    repo: "{{ openldap_repo_url }}"
+    dest: "{{ openldap_project_dir }}"
+    version: "{{ openldap_repo_version }}"
+    key_file: /root/.ssh/openldap_deploy_key
+    accept_hostkey: true
+  notify: "Redeploy openldap after compose changes"
 
 - name: Run the generic compose-app tasks
   ansible.builtin.include_role:

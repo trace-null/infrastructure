@@ -8,13 +8,19 @@ openldap_org: "tracenull"
 openldap_share_tag: openldap-data
 openldap_share_path: /mnt/infra/openldap
 
+# The compose file comes from the private self-hosted GitLab, over SSH on 2224.
+# It pins the image tag, so changing which commit is checked out here is how
+# the image gets upgraded.
+openldap_repo_url: "ssh://git@{{ hostvars[groups['gitlab_hosts'][0]].ansible_host }}:2224/compose-files/openldap.git"
+openldap_repo_version: main
 openldap_project_dir: /opt/openldap
 
-# Admin password, pulled from OpenBao at converge time via the ansible
-# AppRole (see inventory/group_vars/all.yml).
+# Admin password and the compose repository deploy key, pulled from OpenBao
+# at converge time via the ansible AppRole (see inventory/group_vars/all.yml).
 openldap_vault_secret: >-
   {{ lookup('community.hashi_vault.hashi_vault',
      'secret=secret/data/apps/openldap',
      url=vault_addr, ca_cert=vault_ca_cert, auth_method='approle',
      role_id=vault_role_id, secret_id=vault_secret_id) }}
 openldap_admin_password: "{{ openldap_vault_secret.admin_password }}"
+openldap_deploy_key: "{{ openldap_vault_secret.deploy_key }}"
