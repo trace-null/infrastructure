@@ -1,3 +1,6 @@
-- name: "Rebuild openldap after file changes"
+# Notified by the compose repository fetch. Reloading the unit runs
+# docker compose up, which pulls the pinned image tag if it isn't on the
+# host yet and recreates the containers whose config changed.
+- name: "Redeploy openldap after compose changes"
   ansible.builtin.command: systemctl reload-or-restart openldap-compose.service
   changed_when: true

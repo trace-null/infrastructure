@@ -1,8 +1,0 @@
-dn: cn=module,cn=config
-objectClass: olcModuleList
-cn: module
-olcModulePath: /usr/lib/ldap
-olcModuleLoad: memberof.la
-olcModuleLoad: refint.la
-olcModuleLoad: unique.la
-olcModuleLoad: ppolicy.la
