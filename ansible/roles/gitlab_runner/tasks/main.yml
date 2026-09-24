@@ -1,0 +1,48 @@
+- name: Check that the runner token is present
+  ansible.builtin.assert:
+    that:
+      - gitlab_runner_token is match('glrt-')
+    fail_msg: >-
+      token is missing from OpenBao under secret/apps/gitlab-runner, or is
+      not a runner authentication token (glrt-...). Create the runner in
+      GitLab first and store the token it shows.
+    quiet: true
+
+- name: Create the runner config directory
+  ansible.builtin.file:
+    path: "{{ gitlab_runner_project_dir }}/config"
+    state: directory
+    owner: root
+    group: root
+    mode: "0700"
+
+- name: Install the compose file
+  ansible.builtin.template:
+    src: compose.yml.j2
+    dest: "{{ gitlab_runner_project_dir }}/compose.yml"
+    owner: root
+    group: root
+    mode: "0644"
+  notify: "Apply gitlab-runner compose"
+
+# The runner watches config.toml and reloads it by itself, no restart needed.
+# diff is off because the file holds the runner token.
+- name: Write the runner config
+  ansible.builtin.template:
+    src: config.toml.j2
+    dest: "{{ gitlab_runner_project_dir }}/config/config.toml"
+    owner: root
+    group: root
+    mode: "0600"
+  diff: false
+  no_log: true
+
+- name: Run the generic compose-app tasks
+  ansible.builtin.include_role:
+    name: compose_app
+  vars:
+    compose_app_name: gitlab-runner
+    compose_app_display_name: GitLab runner
+    compose_app_project_dir: "{{ gitlab_runner_project_dir }}"
+    compose_app_env:
+      GITLAB_RUNNER_VERSION: "{{ gitlab_runner_version }}"

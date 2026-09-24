@@ -1,0 +1,11 @@
+# Managed by Ansible (gitlab_runner role).
+services:
+  gitlab-runner:
+    image: gitlab/gitlab-runner:${GITLAB_RUNNER_VERSION}
+    container_name: gitlab-runner
+    restart: unless-stopped
+    volumes:
+      - ./config:/etc/gitlab-runner
+      # The docker executor starts job containers through the host daemon.
+      # Jobs themselves never see this socket.
+      - /var/run/docker.sock:/var/run/docker.sock

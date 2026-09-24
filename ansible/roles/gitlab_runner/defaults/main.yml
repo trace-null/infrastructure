@@ -1,0 +1,30 @@
+# gitlab-runner image tag. Keep it on the same minor version as GitLab.
+gitlab_runner_version: "v19.4.0"
+
+# How many jobs run at once on this VM.
+gitlab_runner_concurrent: 2
+
+# The runner talks to GitLab on the internal address. The public hostname
+# sits behind Pangolin's auth gate, which answers machine traffic with a
+# bare 401. clone_url is set to the same address so job checkouts do too.
+gitlab_runner_gitlab_url: "http://{{ hostvars[groups['gitlab_hosts'][0]].ansible_host }}"
+
+# Nothing persistent: the runner's only state is its authentication token,
+# which comes from OpenBao, so the VM has no share and config.toml is
+# rewritten on every converge.
+gitlab_runner_project_dir: /opt/gitlab-runner
+
+# Only the dind service may run privileged. The job container itself
+# (docker:28 and friends) runs unprivileged and talks to dind over TLS.
+gitlab_runner_privileged_images:
+  - "docker:*-dind"
+  - "docker.io/library/docker:*-dind"
+
+# Runner authentication token (glrt-...), created in GitLab and stored by
+# hand in OpenBao, read at converge time via the ansible AppRole.
+gitlab_runner_vault_secret: >-
+  {{ lookup('community.hashi_vault.hashi_vault',
+     'secret=secret/data/apps/gitlab-runner',
+     url=vault_addr, ca_cert=vault_ca_cert, auth_method='approle',
+     role_id=vault_role_id, secret_id=vault_secret_id) }}
+gitlab_runner_token: "{{ gitlab_runner_vault_secret.token }}"

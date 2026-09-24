@@ -3,9 +3,10 @@
     that:
       - gitlab_hostname | length > 0
       - gitlab_ssh_host | length > 0
+      - gitlab_registry_hostname | length > 0
     fail_msg: >-
-      GITLAB_HOSTNAME and GITLAB_SSH_HOST are missing. Add them to the
-      untracked .env and run this through just.
+      GITLAB_HOSTNAME, GITLAB_SSH_HOST or GITLAB_REGISTRY_HOSTNAME is
+      missing. Add them to the untracked .env and run this through just.
     quiet: true
 
 # The compose files come from the public GitHub repo over HTTPS, no
@@ -54,6 +55,9 @@
       GITLAB_SSH_HOST: "{{ gitlab_ssh_host }}"
       GITLAB_HTTP_PORT: "{{ gitlab_http_port }}"
       GITLAB_SSH_PORT: "{{ gitlab_ssh_port }}"
+      GITLAB_REGISTRY_HOSTNAME: "{{ gitlab_registry_hostname }}"
+      GITLAB_REGISTRY_PORT: "{{ gitlab_registry_port }}"
+      GITLAB_REGISTRY_TOKEN_REALM: "{{ gitlab_registry_token_realm }}"
       GITLAB_DATA_DIR: "{{ gitlab_share_path }}"
       AUTHENTIK_ISSUER: "{{ gitlab_authentik.issuer }}"
       AUTHENTIK_CLIENT_ID: "{{ gitlab_authentik.client_id }}"

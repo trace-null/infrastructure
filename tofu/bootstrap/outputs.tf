@@ -14,6 +14,14 @@ output "gitlab_vm_id" {
   value = module.gitlab.vm_id
 }
 
+output "gitlab_runner_ip" {
+  value = local.gitlab_runner_ip
+}
+
+output "gitlab_runner_vm_id" {
+  value = module.gitlab_runner.vm_id
+}
+
 output "authentik_ip" {
   value = local.authentik_ip
 }

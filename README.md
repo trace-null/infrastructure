@@ -5,12 +5,13 @@ Real values are supplied at run time from Bitwarden and OpenBao.
 
 ## Architecture
 
-Three VMs on Proxmox, provisioned by OpenTofu, configured by Ansible:
+Four VMs on Proxmox, provisioned by OpenTofu, configured by Ansible:
 
 | VM                    | Role      | What it does                                    |
 |------------------------|-----------|--------------------------------------------------|
 | `openbao-1`             | `openbao` | Secrets storage. Everything else reads from here. |
-| `gitlab-1`              | `gitlab`  | Source control. Public HTTPS + private SSH (2224). |
+| `gitlab-1`              | `gitlab`  | Source control. Public HTTPS + private SSH (2224), container registry (5050). |
+| `gitlab-runner-1`       | `gitlab_runner` | CI runner, docker executor. Stateless, no share. |
 | `infrastructure-stack`  | `authentik` | SSO identity provider for GitLab (and future services). |
 
 **Persistence:** VMs are disposable. Each app VM has a ZFS dataset on the
@@ -31,11 +32,28 @@ path, so the stack can never start against an empty/wrong disk.
    `ansible` AppRole. Connection details live in
    `ansible/inventory/group_vars/all.yml`, not scattered across roles.
 
-**Compose apps:** `gitlab` and `authentik` are both Docker Compose stacks
+**Compose apps:** `gitlab`, `gitlab_runner` and `authentik` are Docker Compose stacks
 and share a `compose_app` Ansible role that handles everything generic:
 mounting the share, installing Docker, writing `.env`, installing and
 starting the systemd unit. Each app's own role only handles what's
-actually specific to it, see below.
+actually specific to it, see below. The share is optional: a stateless
+app like the runner leaves `compose_app_share_tag` unset and gets no mount.
+
+**CI runner:** `gitlab-runner-1` is a group runner on the `docker-images`
+group, not an instance runner, so only projects in that group can use it.
+It runs the docker executor with `privileged = true`, narrowed by
+`allowed_privileged_images`/`allowed_privileged_services` so that only
+`docker:*-dind` containers actually get privileged. Job containers do not.
+Its authentication token (`glrt-...`) lives in OpenBao at
+`secret/apps/gitlab-runner` (key `token`), and `config.toml` is rendered
+from it on every converge. To replace the runner, create a new one in
+GitLab (Admin or group > CI/CD > Runners), `bao kv put` the new token,
+converge, then delete the old runner in GitLab.
+
+**Container registry:** served by GitLab on port 5050 of `gitlab-1`, behind
+Pangolin at `GITLAB_REGISTRY_HOSTNAME` (from `.env`). Docker clients get
+their token from GitLab's internal address, because the public hostname
+sits behind Pangolin's auth gate. So only LAN clients can log in.
 
 ## Adding a new VM/service
 
